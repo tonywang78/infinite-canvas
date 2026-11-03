@@ -84,16 +84,16 @@ export const platformApi = {
             method: "POST",
             body: JSON.stringify({ offerId, params }),
         }),
-    generateImage: (body: Record<string, unknown>) => request<any>("/app/generation/generate/image", { method: "POST", body: JSON.stringify(body) }),
-    generateImageEdit: (body: Record<string, unknown>) => request<any>("/app/generation/generate/image-edit", { method: "POST", body: JSON.stringify(body) }),
-    uploadTemp: (file: Blob, filename: string) => {
+    generateImage: (body: Record<string, unknown>, signal?: AbortSignal) => request<any>("/app/generation/generate/image", { method: "POST", body: JSON.stringify(body), signal }),
+    generateImageEdit: (body: Record<string, unknown>, signal?: AbortSignal) => request<any>("/app/generation/generate/image-edit", { method: "POST", body: JSON.stringify(body), signal }),
+    uploadTemp: (file: Blob, filename: string, signal?: AbortSignal) => {
         const form = new FormData();
         form.append("files", file, filename);
-        return request<{ path: string; name: string; size: number; expiresInHours: number }>("/app/generation/upload/temp", { method: "POST", body: form });
+        return request<{ path: string; name: string; size: number; expiresInHours: number }>("/app/generation/upload/temp", { method: "POST", body: form, signal });
     },
-    generateText: (body: Record<string, unknown>) => request<any>("/app/generation/generate/text", { method: "POST", body: JSON.stringify(body) }),
-    generateVideo: (body: Record<string, unknown>) => request<any>("/app/generation/generate/video", { method: "POST", body: JSON.stringify(body) }),
-    generateAudio: (body: Record<string, unknown>) => request<any>("/app/generation/generate/audio", { method: "POST", body: JSON.stringify(body) }),
+    generateText: (body: Record<string, unknown>, signal?: AbortSignal) => request<any>("/app/generation/generate/text", { method: "POST", body: JSON.stringify(body), signal }),
+    generateVideo: (body: Record<string, unknown>, signal?: AbortSignal) => request<any>("/app/generation/generate/video", { method: "POST", body: JSON.stringify(body), signal }),
+    generateAudio: (body: Record<string, unknown>, signal?: AbortSignal) => request<any>("/app/generation/generate/audio", { method: "POST", body: JSON.stringify(body), signal }),
     agentTurn: (body: {
         offerId: number;
         messages: Array<{ role: string; content: string }>;

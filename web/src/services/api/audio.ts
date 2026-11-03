@@ -57,7 +57,7 @@ export async function requestAudioGeneration(config: AiConfig, prompt: string, _
         format,
         ...(speed ? { speed: Number(speed) } : {}),
         ...(instructions ? { instructions } : {}),
-    });
+    }, _options?.signal);
     const audio = extractAudioBase64(task.result || task);
     if (!audio) throw new Error(apiText("audioGenerationFailed"));
     return base64ToBlob(audio.base64, audioMimeType(audio.format || format));

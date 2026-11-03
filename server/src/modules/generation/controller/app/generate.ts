@@ -295,7 +295,12 @@ export class AppGenerationController extends BaseController {
     fs.writeFileSync(target, buffer);
     // 返回浏览器可直接 fetch 的绝对 URL：Vite 前端与平台 API 不同源，
     // 裸 `/upload/temp/...` 会被解析到前端 origin 而无法访问。
-    const origin = String(this.ctx?.origin || '').replace(/\/+$/, '');
+    // BaseController 只注入 baseCtx（Koa Context），没有 this.ctx；用 baseCtx.origin
+    // 取 `protocol://host`，origin 缺失时直接报错，绝不返回相对路径。
+    const origin = String(this.baseCtx.origin || '').replace(/\/+$/, '');
+    if (!origin) {
+      throw new CoolCommException('无法解析服务端 origin，视频回退落盘失败');
+    }
     return `${origin}/upload/temp/${name}`;
   }
 

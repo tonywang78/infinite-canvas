@@ -180,7 +180,7 @@ export async function requestGeneration(config: AiConfig, prompt: string, _optio
         n,
         size: resolveRequestSize(config.size),
         quality: normalizeQuality(config.quality),
-    });
+    }, _options?.signal);
     return parseImagePayload(task.result || task);
 }
 
@@ -198,7 +198,7 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
     const uploads = await Promise.all(references.map(async (image, index) => {
         const dataUrl = await imageToDataUrl(image, options);
         const blob = await dataUrlToBlob(dataUrl);
-        const uploaded = await platformApi.uploadTemp(blob, inferFileName(image, index));
+        const uploaded = await platformApi.uploadTemp(blob, inferFileName(image, index), options?.signal);
         return uploaded.path;
     }));
 
@@ -212,7 +212,7 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
         ...(resolveRequestSize(config.size) ? { size: resolveRequestSize(config.size) } : {}),
         ...(normalizeQuality(config.quality) ? { quality: normalizeQuality(config.quality) } : {}),
         images: uploads,
-    });
+    }, options?.signal);
     return parseImagePayload(task.result || task);
 }
 
@@ -235,7 +235,7 @@ export async function requestImageQuestion(config: AiConfig, messages: AiTextMes
         offerId,
         messages: normalizedMessages,
         max_tokens: 1000,
-    });
+    }, _options?.signal);
     const text = extractTextContent(task.result || task) || apiText("noContent");
     onDelta(text);
     return text;

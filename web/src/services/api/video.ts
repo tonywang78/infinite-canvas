@@ -15,7 +15,7 @@ export type VideoGenerationResult = { blob?: Blob; url?: string; mimeType?: stri
 // (which still compare against "plugin"/"openai"/"gemini") keep compiling. The
 // platform path only ever produces `"platform"`; Task 4 will narrow this again
 // when the legacy branches in the canvas are removed.
-export type VideoGenerationTask = { id: string; provider: "platform" | "openai" | "gemini" | "plugin"; model: string };
+export type VideoGenerationTask = { id: string; provider: "platform" | "openai" | "gemini" | "plugin"; model: string; platformTaskId?: number };
 export type VideoGenerationTaskState = { status: "pending" } | { status: "completed"; result: VideoGenerationResult } | { status: "failed"; error: string };
 
 type VideoMediaOptions = RequestOptions & { videos?: ReferenceVideo[]; audios?: ReferenceAudio[]; seconds?: string | number; size?: string };
@@ -79,14 +79,19 @@ export async function createVideoGenerationTask(config: AiConfig, prompt: string
         prompt,
         seconds,
         ...(size ? { size } : {}),
-    });
+    }, options?.signal);
     const vendorId = String(task.vendorRequestId || task.result?.id || task.id || nanoid());
     const videoUrl = task.result?.videoUrl || task.result?.url || (typeof task.result?.content === "string" ? task.result.content : "");
     platformVideoResults.set(vendorId, {
         ...(videoUrl ? { url: videoUrl } : {}),
         mimeType: "video/mp4",
     });
-    return { id: vendorId, model: quote.displayName || "platform-video", provider: "platform" };
+    // 服务平台任务行 id（createAndRun 返回的 task.id），用于停止时调用 cancelTask。
+    // 注意：当前 /video 为阻塞式接口，task.id 在上游轮询完成后才随响应返回，
+    // 因此停止只能取消「响应已返回但本地后续上传未完成」这一小窗口内的任务；
+    // 上游轮询期间的取消受服务端阻塞设计限制，无法由前端触发。
+    const platformTaskId = typeof task.id === "number" ? task.id : undefined;
+    return { id: vendorId, model: quote.displayName || "platform-video", provider: "platform", ...(platformTaskId ? { platformTaskId } : {}) };
 }
 
 export async function pollVideoGenerationTask(_config: AiConfig, task: VideoGenerationTask, _options?: RequestOptions): Promise<VideoGenerationTaskState> {

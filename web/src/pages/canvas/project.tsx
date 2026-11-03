@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { requestEdit, requestGeneration, requestImageQuestion } from "@/services/api/image";
 import { requestAudioGeneration, storeGeneratedAudio } from "@/services/api/audio";
 import { createVideoGenerationTask, isVideoTaskFailed, storeGeneratedVideo, waitForVideoGenerationTask } from "@/services/api/video";
+import { platformApi } from "@/services/api/platform";
 import { defaultConfig, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { ensureImagePreview, uploadImage } from "@/services/image-storage";
 import { uploadMediaFile, type UploadedFile } from "@/services/file-storage";
@@ -119,6 +120,10 @@ type CanvasGenerationRequest = {
     originNodeId: string;
     runningNodeId: string;
     controller: AbortController;
+    // 平台任务行 id（createAndRun 返回的 task.id），用于停止时调用 cancelTask 退回预扣积分。
+    // 当前平台生成接口为阻塞式，task.id 在响应返回后才可知，因此该字段主要覆盖
+    // 「响应已返回但本地后续处理未完成」这一窗口；上游轮询期间的取消受服务端阻塞设计限制。
+    platformTaskId?: number;
 };
 
 const VIDEO_NODE_MAX_WIDTH = 420;
@@ -317,7 +322,11 @@ function InfiniteCanvasPage() {
         async (nodeId: string, config: Parameters<typeof buildGenerationConfig>[0], prompt: string, images: Parameters<typeof createVideoGenerationTask>[2], signal: AbortSignal, extra: CanvasNodeData["metadata"] = {}, videos: ReferenceVideo[] = [], audios: ReferenceAudio[] = []) => {
             const task = await createVideoGenerationTask(config, prompt, images, { signal, videos, audios });
             if (task.provider !== "plugin") {
-                setNodes((prev) => prev.map((item) => (item.id === nodeId ? { ...item, metadata: { ...item.metadata, videoTaskId: task.id, videoTaskProvider: task.provider === "gemini" ? "gemini" : "openai", offerId: config.videoOfferId } } : item)));
+                setNodes((prev) => prev.map((item) => (item.id === nodeId ? { ...item, metadata: { ...item.metadata, videoTaskId: task.id, videoTaskProvider: "platform", platformTaskId: task.platformTaskId, offerId: config.videoOfferId } } : item)));
+                if (task.platformTaskId) {
+                    const existing = generationRequestsRef.current.get(nodeId);
+                    if (existing) generationRequestsRef.current.set(nodeId, { ...existing, platformTaskId: task.platformTaskId });
+                }
             }
             const video = await storeGeneratedVideo(await waitForVideoGenerationTask(config, task, { signal }));
             setNodes((prev) => prev.map((item) => (item.id === nodeId ? applyGeneratedVideo(item, video, { prompt, offerId: config.videoOfferId, ...extra }) : item)));
@@ -344,7 +353,7 @@ function InfiniteCanvasPage() {
                 setRunningNodeId(node.id);
                 setNodes((prev) => prev.map((item) => (item.id === node.id ? { ...item, metadata: { ...item.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined } } : item)));
                 controller = startGenerationRequest(node.id, node.id, node.id);
-                const video = await storeGeneratedVideo(await waitForVideoGenerationTask(generationConfig, { id: taskId, provider: node.metadata?.videoTaskProvider === "gemini" ? "gemini" : "openai", model: generationConfig.videoOfferId ? String(generationConfig.videoOfferId) : "" }, { signal: controller.signal }));
+                const video = await storeGeneratedVideo(await waitForVideoGenerationTask(generationConfig, { id: taskId, provider: "platform", model: generationConfig.videoOfferId ? String(generationConfig.videoOfferId) : "", ...(typeof node.metadata?.platformTaskId === "number" ? { platformTaskId: node.metadata.platformTaskId } : {}) }, { signal: controller.signal }));
                 setNodes((prev) =>
                     prev.map((item) =>
                         item.id === node.id
@@ -393,14 +402,22 @@ function InfiniteCanvasPage() {
 
     const stopGenerationByRunningId = useCallback((runningId: string) => {
         const affectedNodeIds = new Set<string>();
+        const platformTaskIds: number[] = [];
         generationRequestsRef.current.forEach((request) => {
             if (request.runningNodeId !== runningId) return;
             request.controller.abort();
+            if (request.platformTaskId) platformTaskIds.push(request.platformTaskId);
             generationRequestsRef.current.delete(request.targetNodeId);
             affectedNodeIds.add(request.targetNodeId);
             affectedNodeIds.add(request.originNodeId);
         });
         setRunningNodeId((current) => (current === runningId ? null : current));
+        // 已知平台任务 id 时，尽力调用 cancelTask 退回预扣积分；任务可能已结束，忽略错误。
+        // 当前平台生成接口为阻塞式，task.id 在响应返回后才可知，因此该取消主要覆盖
+        // 「响应已返回但本地后续处理未完成」这一窗口；上游轮询期间无法由前端取消。
+        for (const taskId of platformTaskIds) {
+            platformApi.cancelTask(taskId).catch(() => { /* 任务可能已结束，忽略 */ });
+        }
         if (!affectedNodeIds.size) return;
         setNodes((prev) =>
             prev.map((node) =>
