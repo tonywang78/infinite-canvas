@@ -37,7 +37,7 @@ cd docs
 docker compose -f docker-compose.local.yml up -d --build
 ```
 
-The main application container only runs Next.js. Canvases, My Assets, generation history, and API keys are stored in the browser by default, while prompt repositories are fetched directly by the frontend. No persistent data volume is required for this data.
+Canvases, My Assets, and generation history are stored in the browser by default. Generation uses platform credit APIs; upstream API keys stay in admin and are not stored in the browser.
 
 ## Optional analytics
 

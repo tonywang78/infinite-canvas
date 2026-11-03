@@ -137,27 +137,25 @@ async function getAllPrompts(): Promise<Prompt[]> {
 }
 
 export async function fetchPrompts({ keyword = "", tag = [], category = ALL_PROMPTS_OPTION, page = 1, pageSize = 20 }: { keyword?: string; tag?: string[]; category?: string; page?: number; pageSize?: number } = {}) {
-    if (import.meta.env.VITE_PLATFORM_MODE !== "false") {
-        try {
-            const { platformApi } = await import("@/services/api/platform");
-            const data = await platformApi.prompts({
-                keyword,
-                tag: tag[0],
-                page,
-                pageSize,
-            });
-            const items = (data.items || []) as Prompt[];
-            const filtered =
-                category && category !== ALL_PROMPTS_OPTION ? items.filter((item) => item.category === category) : items;
-            return {
-                items: filtered,
-                tags: data.tags || collectTags(filtered),
-                categories: data.categories || [],
-                total: data.total || filtered.length,
-            };
-        } catch {
-            // fall through to local cache when platform is offline
-        }
+    try {
+        const { platformApi } = await import("@/services/api/platform");
+        const data = await platformApi.prompts({
+            keyword,
+            tag: tag[0],
+            page,
+            pageSize,
+        });
+        const items = (data.items || []) as Prompt[];
+        const filtered =
+            category && category !== ALL_PROMPTS_OPTION ? items.filter((item) => item.category === category) : items;
+        return {
+            items: filtered,
+            tags: data.tags || collectTags(filtered),
+            categories: data.categories || [],
+            total: data.total || filtered.length,
+        };
+    } catch {
+        // fall through to local cache when platform is offline
     }
     const items = await getAllPrompts();
     const normalizedKeyword = keyword.trim().toLowerCase();

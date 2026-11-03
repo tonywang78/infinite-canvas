@@ -9,7 +9,6 @@ COPY CHANGELOG.md /app/CHANGELOG.md
 COPY web ./
 # 同域反代，运行时由 config.js 注入 API 地址（默认同源）
 ENV VITE_API_BASE_URL=
-ENV VITE_PLATFORM_MODE=true
 RUN bun run build
 
 FROM oven/bun:1.3.13 AS admin-build

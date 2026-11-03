@@ -14,6 +14,9 @@ The current release needs manual verification in these areas:
 - Admin cool-admin: configure a channel (API key stored server-side only), offer, and price rule; open dashboard metrics; sync a prompt source; run day reconciliation and release timed-out holds. End users must never see platform API keys or GitHub repo links in the product UI.
 - Default channel seed: a fresh deploy should show 9 sponsor channels (Atlas, Metaso, 88API, Infistar intl/CN, PackyCode global/optimized, HeyRoute intl/CN), all empty-key and disabled until an admin fills a key and enables them, then configures offers/prices. Opening Upstream Channels should list them on first paint without clicking Refresh.
 - Prompt library: after admin sync, `/prompts` and the home prompt showcase should read platform data; product UI must not show clickable GitHub source links.
+- Platform-only generation: while signed out, image, image-edit, video, text, and audio generation must fail and prompt the user to log in.
+- Reference image edits must only call this site’s `image-edit` and temp upload APIs; the browser Network panel must not show third-party AI domains.
+- Product UI must not expose channel API keys, call scripts, or a local AI proxy. Model choice is platform offers; keys appear only in admin.
 
 - Saved model selection: save a canvas node with a model, then remove its provider or remove that model while another video model remains the default. Generation, retry and pending-video recovery should keep the unavailable model selected and open configuration instead of sending a request to the default or first provider. Re-selecting a valid model should allow generation. Changing only the API key on the same provider should preserve the model; switching a config node from a valid image model to video should still use the video default.
 

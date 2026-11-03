@@ -5,7 +5,7 @@ description: Frontend-first local development
 
 # Local Development
 
-The main application lives in `web/`. The browser sends AI requests directly to the user's OpenAI-compatible endpoint.
+The product runs `web/` with the platform API and admin. Generation uses platform credit APIs; upstream keys are configured only in admin.
 
 ## Start the frontend
 
@@ -15,7 +15,7 @@ bun install
 bun run dev
 ```
 
-Open `http://localhost:3000`, then enter your `Base URL`, `API Key`, and model names in Settings. Prompt sources and WebDAV are also accessed directly by the browser.
+Open `http://localhost:3000`. Start Postgres, `server/`, and `admin/` as well (see the root README). After an admin configures channel keys and prices, sign in on the frontend to generate with credits.
 
 ## Start the documentation site
 

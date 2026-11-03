@@ -27,10 +27,9 @@ description: Major features available in the current project
 
 ## AI generation
 
-- Connect to user-provided OpenAI-compatible endpoints directly from the browser.
-- Configure multiple channels, fetch or enter model names, and choose default text, image, and video models.
-- Support image count, aspect ratio, quality, transparent backgrounds, reasoning effort, and custom invocation scripts.
-- Support OpenAI-style video endpoints.
+- Generate images, edits, text, audio, and video only through the platform credit APIs after login.
+- Choose default platform offers and generation preferences in Account; upstream API keys live in admin only.
+- The browser does not call third-party AI endpoints, and the product UI has no channel keys, call scripts, or local AI proxy.
 
 ## Canvas Agent
 
@@ -56,12 +55,12 @@ See [Third-party Prompt Sources](/docs/overview/third-party-prompt-repositories)
 
 ## Configuration and synchronization
 
-- Export and import channel, model, generation, prompt-source, and WebDAV settings.
-- Store application data and API credentials locally in the browser.
-- Use WebDAV for optional cross-device synchronization.
+- Sign in to generate; credits are deducted per request, and upstream keys are configured only in admin.
+- Default offers and generation preferences are saved on the account.
+- Canvas projects and My Assets remain in the browser; cloud sync is not available yet.
 
 ## Current limitations
 
-- The project is frontend-first and does not provide built-in cloud accounts or cloud storage.
-- API keys remain in browser storage and requests are sent directly to configured providers.
+- Canvas projects and My Assets stay in browser storage and do not sync with the account.
+- Upstream model keys stay in admin and are not stored or sent from the browser.
 - Production Docker static-resource paths still require broader deployment verification.

@@ -9,7 +9,7 @@ To try the project, deploy or start the `web/` frontend.
 
 ## Deploy with Vercel
 
-Import the repository into Vercel. The root `vercel.json` builds `web/`. AI requests are sent directly from the browser to your OpenAI-compatible endpoint, so no additional application server is required.
+Import the repository into Vercel. The root `vercel.json` builds `web/`. Generation uses the platform credit APIs, so deploy the platform API as well and configure channel keys and prices in admin.
 
 ## Run locally
 
@@ -31,8 +31,8 @@ docker run --rm -p 3000:3000 infinite-canvas
 
 ## First-time setup
 
-- Open Settings and enter your `Base URL`, `API Key`, and model names.
-- Open `/prompts` to fetch prompt repositories directly from the browser and cache them in IndexedDB.
-- Configure WebDAV if you want to synchronize canvases, assets, and generation history across devices.
+- Sign in to generate with credits; choose platform offers in Account.
+- Upstream API keys, channels, and prices are configured only in admin. The product UI has no channel keys or call scripts.
+- After an admin sync, browse prompts at `/prompts`.
 
-Canvas projects and My Assets are primarily stored in the browser. The API key is also stored locally and used by the browser to call OpenAI-compatible endpoints directly.
+Canvas projects and My Assets are primarily stored in the browser. Generation goes through platform credit APIs; upstream keys stay in admin.
