@@ -1,11 +1,43 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123456"
+      POSTGRES_DB: infinite_canvas
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
   app:
-    image: ghcr.io/basketikun/infinite-canvas:latest
-    container_name: infinite-canvas
+    image: infinite-canvas:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
     ports:
       - "3000:3000"
     restart: unless-stopped
-    # 统计分析（可选，默认关闭）。每家一个独立变量，填了谁就启用谁，可同时启用多家：
-    # environment:
-    #   ANALYTICS_GA4_ID: G-XXXXXXXXXX                    # Google Analytics 4 衡量 ID
-    #   ANALYTICS_BAIDU_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxx   # 百度统计站点 ID
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: "123456"
+      DB_NAME: infinite_canvas
+      # 同域反代，留空即可；前台请求 /app，管理端请求 /api
+      API_BASE_URL: ""
+      DB_SYNC: "true"
+      DB_INIT: "true"
+      REGISTER_GIFT_POINTS: "100"
+      MAX_CONCURRENT_TASKS: "3"
+      MAX_UPLOAD_BYTES: "20971520"
+      TASK_TIMEOUT_MS: "600000"
+      TEMP_FILE_TTL_HOURS: "24"
+      SECRETS_MASTER_KEY: infinite-canvas-dev-master-key-change-me!!
+      # ANALYTICS_GA4_ID: G-XXXXXXXXXX
+      # ANALYTICS_BAIDU_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxx

@@ -70,6 +70,28 @@ function videoTaskFailed(message: string) {
 }
 
 export async function createVideoGenerationTask(config: AiConfig, prompt: string, references: ReferenceImage[] = [], options?: VideoMediaOptions): Promise<VideoGenerationTask> {
+    if (import.meta.env.VITE_PLATFORM_MODE !== "false") {
+        const { isLoggedIn, platformApi } = await import("@/services/api/platform");
+        if (!isLoggedIn()) throw new Error("请先登录后再生成");
+        const offers = await platformApi.offers("video");
+        const offerId = Number(config.videoOfferId || (config as AiConfig & { platformOfferId?: number }).platformOfferId || offers[0]?.id);
+        if (!offerId) throw new Error("暂无可用视频模型，请联系管理员配置");
+        const seconds = Number(options?.seconds || config.videoSeconds || 5);
+        const quote = await platformApi.quote(offerId, { seconds, size: options?.size || config.videoSize });
+        if (!quote.enough) throw new Error(`积分不足：需要 ${quote.points}，当前余额 ${quote.balance}`);
+        const task = await platformApi.generateVideo({
+            offerId,
+            prompt,
+            seconds,
+            size: options?.size || config.videoSize,
+        });
+        const vendorId = String(task.vendorRequestId || task.result?.id || task.id);
+        pluginVideoResults.set(vendorId, {
+            url: task.result?.videoUrl || task.result?.url || task.result?.content_url || "",
+            mimeType: "video/mp4",
+        });
+        return { id: vendorId, model: quote.displayName || "platform-video", provider: "plugin" };
+    }
     const selectedModel = (config.model || config.videoModel).trim();
     const requestConfig = resolveModelRequestConfig(config, selectedModel);
     const script = resolveModelScript(config, selectedModel);

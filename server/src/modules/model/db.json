@@ -1,0 +1,76 @@
+{
+  "model_channel": [
+    {
+      "id": 1,
+      "name": "Atlas Cloud",
+      "baseUrl": "https://api.atlascloud.ai",
+      "apiKeyEncrypted": "",
+      "apiFormat": "openai",
+      "enabled": false
+    },
+    {
+      "id": 2,
+      "name": "秘塔 MiniMax H3",
+      "baseUrl": "https://metaso.cn/api/openai",
+      "apiKeyEncrypted": "",
+      "apiFormat": "openai",
+      "enabled": false
+    },
+    {
+      "id": 3,
+      "name": "88API",
+      "baseUrl": "https://api.88api.ai",
+      "apiKeyEncrypted": "",
+      "apiFormat": "openai",
+      "enabled": false
+    },
+    {
+      "id": 4,
+      "name": "Infistar（国际）",
+      "baseUrl": "https://infistar.ai",
+      "apiKeyEncrypted": "",
+      "apiFormat": "openai",
+      "enabled": false
+    },
+    {
+      "id": 5,
+      "name": "Infistar（国内）",
+      "baseUrl": "https://infistar.cc",
+      "apiKeyEncrypted": "",
+      "apiFormat": "openai",
+      "enabled": false
+    },
+    {
+      "id": 6,
+      "name": "PackyCode（全球）",
+      "baseUrl": "https://cf.api.fan",
+      "apiKeyEncrypted": "",
+      "apiFormat": "openai",
+      "enabled": false
+    },
+    {
+      "id": 7,
+      "name": "PackyCode（优化）",
+      "baseUrl": "https://slb-v1.api.fan",
+      "apiKeyEncrypted": "",
+      "apiFormat": "openai",
+      "enabled": false
+    },
+    {
+      "id": 8,
+      "name": "HeyRoute（国际）",
+      "baseUrl": "https://heyroute.ai",
+      "apiKeyEncrypted": "",
+      "apiFormat": "openai",
+      "enabled": false
+    },
+    {
+      "id": 9,
+      "name": "HeyRoute（国内）",
+      "baseUrl": "https://cn.heyroute.ai",
+      "apiKeyEncrypted": "",
+      "apiFormat": "openai",
+      "enabled": false
+    }
+  ]
+}

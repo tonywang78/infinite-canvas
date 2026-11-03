@@ -22,7 +22,7 @@
   <a href="docs/content/docs/overview/quick-start.mdx">快速开始</a> · <a href="docs/content/docs/overview/features.mdx">功能介绍</a> · <a href="docs/content/docs/overview/render.mdx">Render 部署</a> · <a href="docs/content/docs/overview/docker.mdx">Docker 部署</a> · <a href="docs/content/docs/canvas/canvas-node-manual.mdx">画布节点操作手册</a> · <a href="docs/content/docs/canvas/canvas-shortcuts.mdx">画布快捷键</a> · <a href="SECURITY.md">漏洞提交</a> · <a href="docs/content/docs/progress/todo.mdx">待办事项</a> · <a href="canvas-agent/README.md">本地 Canvas Agent</a> · <a href="plugins/infinite-canvas">Codex app 插件</a>
 </p>
 
-无限画布是一款面向图片创作的开源工作台。它把画布编排、AI 图片生成、参考图编辑、对话助手、提示词库和素材沉淀放在同一个界面里，适合用来探索视觉方案并连续迭代图片结果。
+无限画布是一款面向图片创作的工作台。它把画布编排、AI 图片生成、参考图编辑、对话助手、提示词库和素材沉淀放在同一个界面里。当前仓库已转向**对外积分服务**：用户注册后按次消耗积分，模型密钥由服务端代持；管理后台基于 cool-admin，数据库使用 PostgreSQL。画布与「我的素材」仍主要保存在浏览器本地。
 
 > [!CAUTION]
 > 项目目前处于开发阶段，不保证历史数据兼容。各种本地存储格式都可能直接调整，欢迎关注后续更新。
@@ -140,19 +140,29 @@ bun install
 bun run dev
 ```
 
+平台服务端与管理后台同样使用 bun：
+
+```bash
+# 先起 Postgres（见 server/docker-compose.yml）
+cd server && bun install && bun run dev
+cd admin && bun install && bun run dev
+```
+
 ### Docker 运行
+
+根目录 Dockerfile 会打进**同一个镜像**：用户前台、管理后台、平台 API。Postgres 仍单独容器。
 
 ```bash
 git clone git@github.com:basketikun/infinite-canvas.git
 cd infinite-canvas
-docker compose up -d
+docker compose up -d --build
 ```
 
-运行后默认端口3000，可访问 `http://localhost:3000`。
+- 用户前台：`http://localhost:3000`
+- 管理后台：`http://localhost:3000/console/`
+- 平台 API：同域 `/app`、`/api`（容器内 Midway 监听 8001，由 nginx 反代）
 
-首次打开后进入右上角配置，填入自己的 OpenAI 兼容 `Base URL` 和 `API Key`。
-
-如果默认的OpenAI接口调用方式与您的API不同，可自定义生图/视频脚本调用。
+首次需在管理后台配置模型渠道与价目；用户侧注册后按积分消费。画布数据仍在浏览器本地。
 
 ## 效果展示
 

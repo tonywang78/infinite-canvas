@@ -1,0 +1,51 @@
+[
+  {
+    "name": "模型配置",
+    "router": "/model",
+    "perms": null,
+    "type": 0,
+    "icon": "icon-set",
+    "orderNum": 1,
+    "viewPath": null,
+    "keepAlive": true,
+    "isShow": true,
+    "childMenus": [
+      {
+        "name": "上游渠道",
+        "router": "/model/channel",
+        "perms": "model:channel:add,model:channel:delete,model:channel:update,model:channel:page,model:channel:list,model:channel:info",
+        "type": 1,
+        "icon": "icon-menu",
+        "orderNum": 1,
+        "viewPath": "modules/model/views/channel.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      },
+      {
+        "name": "模型能力",
+        "router": "/model/offer",
+        "perms": "model:offer:add,model:offer:delete,model:offer:update,model:offer:page,model:offer:list,model:offer:info",
+        "type": 1,
+        "icon": "icon-menu",
+        "orderNum": 2,
+        "viewPath": "modules/model/views/offer.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      },
+      {
+        "name": "积分价目",
+        "router": "/model/price",
+        "perms": "model:price:add,model:price:delete,model:price:update,model:price:page,model:price:list,model:price:info",
+        "type": 1,
+        "icon": "icon-menu",
+        "orderNum": 3,
+        "viewPath": "modules/model/views/price.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      }
+    ]
+  }
+]

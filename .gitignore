@@ -9,6 +9,13 @@ data/
 .DS_Store
 .idea
 web/dist
+server/node_modules
+server/data
+server/dist
+server/logs
+admin/node_modules
+admin/dist
+admin/data
 
 **/dist
 web/public/plugins

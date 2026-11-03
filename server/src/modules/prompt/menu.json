@@ -1,0 +1,39 @@
+[
+  {
+    "name": "提示词库",
+    "router": "/prompt",
+    "perms": null,
+    "type": 0,
+    "icon": "icon-doc",
+    "orderNum": 1,
+    "viewPath": null,
+    "keepAlive": true,
+    "isShow": true,
+    "childMenus": [
+      {
+        "name": "提示词来源",
+        "router": "/prompt/source",
+        "perms": "prompt:source:add,prompt:source:delete,prompt:source:update,prompt:source:page,prompt:source:list,prompt:source:info,prompt:source:sync",
+        "type": 1,
+        "icon": "icon-menu",
+        "orderNum": 1,
+        "viewPath": "modules/prompt/views/source.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      },
+      {
+        "name": "同步记录",
+        "router": "/prompt/sync_run",
+        "perms": "prompt:sync_run:page,prompt:sync_run:list,prompt:sync_run:info",
+        "type": 1,
+        "icon": "icon-menu",
+        "orderNum": 2,
+        "viewPath": "modules/prompt/views/sync-run.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      }
+    ]
+  }
+]

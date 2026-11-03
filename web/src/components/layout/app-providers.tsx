@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { ClientRootInit } from "@/components/layout/client-root-init";
 import type { AppLocale } from "@/i18n";
 import { getAntThemeConfig } from "@/lib/app-theme";
+import { useAuthStore } from "@/stores/use-auth-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 
 const queryClient = new QueryClient({
@@ -41,6 +42,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
         document.querySelector('meta[name="description"]')?.setAttribute("content", t("meta.description"));
         dayjs.locale(locale === "zh-CN" ? "zh-cn" : "en");
     }, [locale, t]);
+
+    useEffect(() => {
+        void useAuthStore.getState().hydrate();
+    }, []);
 
     return (
         <ConfigProvider locale={locale === "zh-CN" ? zhCN : enUS} theme={getAntThemeConfig(dark)}>

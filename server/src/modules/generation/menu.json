@@ -1,0 +1,27 @@
+[
+  {
+    "name": "任务对账",
+    "router": "/generation",
+    "perms": null,
+    "type": 0,
+    "icon": "icon-activity",
+    "orderNum": 1,
+    "viewPath": null,
+    "keepAlive": true,
+    "isShow": true,
+    "childMenus": [
+      {
+        "name": "生成任务",
+        "router": "/generation/task",
+        "perms": "generation:task:page,generation:task:list,generation:task:info,generation:task:reconciliation,generation:task:releaseTimedOut",
+        "type": 1,
+        "icon": "icon-menu",
+        "orderNum": 1,
+        "viewPath": "modules/generation/views/task.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      }
+    ]
+  }
+]

@@ -1,0 +1,67 @@
+{
+  "prompt_source": [
+    {
+      "id": 1,
+      "name": "Banana Prompt Quicker",
+      "url": "https://raw.githubusercontent.com/yukkcat/image-prompts/main/dist/sources/banana-prompt-quicker.json",
+      "homepage": "https://glidea.github.io/banana-prompt-quicker/",
+      "builtIn": true,
+      "enabled": true,
+      "sort": 1
+    },
+    {
+      "id": 2,
+      "name": "DavidWu GPT Image 2",
+      "url": "https://raw.githubusercontent.com/yukkcat/image-prompts/main/dist/sources/davidwu-gpt-image2-prompts.json",
+      "homepage": "https://github.com/davidwuw0811-boop/awesome-gpt-image2-prompts",
+      "builtIn": true,
+      "enabled": true,
+      "sort": 2
+    },
+    {
+      "id": 3,
+      "name": "Freestylefly GPT Image 2",
+      "url": "https://raw.githubusercontent.com/yukkcat/image-prompts/main/dist/sources/freestylefly-gpt-image-2.json",
+      "homepage": "https://github.com/freestylefly/awesome-gpt-image-2",
+      "builtIn": true,
+      "enabled": true,
+      "sort": 3
+    },
+    {
+      "id": 4,
+      "name": "Awesome GPT Image",
+      "url": "https://raw.githubusercontent.com/yukkcat/image-prompts/main/dist/sources/awesome-gpt-image.json",
+      "homepage": "https://github.com/ZeroLu/awesome-gpt-image",
+      "builtIn": true,
+      "enabled": true,
+      "sort": 4
+    },
+    {
+      "id": 5,
+      "name": "Awesome GPT-4o",
+      "url": "https://raw.githubusercontent.com/yukkcat/image-prompts/main/dist/sources/awesome-gpt4o-image-prompts.json",
+      "homepage": "https://github.com/ImgEdify/Awesome-GPT4o-Image-Prompts",
+      "builtIn": true,
+      "enabled": true,
+      "sort": 5
+    },
+    {
+      "id": 6,
+      "name": "YouMind GPT Image 2",
+      "url": "https://raw.githubusercontent.com/yukkcat/image-prompts/main/dist/sources/youmind-gpt-image-2.json",
+      "homepage": "https://github.com/YouMind-OpenLab/awesome-gpt-image-2",
+      "builtIn": true,
+      "enabled": true,
+      "sort": 6
+    },
+    {
+      "id": 7,
+      "name": "YouMind Nano Banana Pro",
+      "url": "https://raw.githubusercontent.com/yukkcat/image-prompts/main/dist/sources/youmind-nano-banana-pro.json",
+      "homepage": "https://github.com/YouMind-OpenLab/awesome-nano-banana-pro-prompts",
+      "builtIn": true,
+      "enabled": true,
+      "sort": 7
+    }
+  ]
+}

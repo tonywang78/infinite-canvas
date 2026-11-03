@@ -1,0 +1,39 @@
+[
+  {
+    "name": "站点运营",
+    "router": "/site",
+    "perms": null,
+    "type": 0,
+    "icon": "icon-home",
+    "orderNum": 0,
+    "viewPath": null,
+    "keepAlive": true,
+    "isShow": true,
+    "childMenus": [
+      {
+        "name": "运营看板",
+        "router": "/site/dashboard",
+        "perms": "site:setting:dashboard,site:setting:map,site:setting:set",
+        "type": 1,
+        "icon": "icon-data",
+        "orderNum": 1,
+        "viewPath": "modules/site/views/dashboard.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      },
+      {
+        "name": "站点配置",
+        "router": "/site/setting",
+        "perms": "site:setting:page,site:setting:list,site:setting:info,site:setting:update,site:setting:add,site:setting:set,site:setting:map",
+        "type": 1,
+        "icon": "icon-set",
+        "orderNum": 2,
+        "viewPath": "modules/site/views/setting.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      }
+    ]
+  }
+]

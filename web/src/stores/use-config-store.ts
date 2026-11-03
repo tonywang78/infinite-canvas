@@ -56,6 +56,11 @@ export type AiConfig = {
     proxyUrl: string;
     nodeRegenerateBehavior: "new-node" | "overwrite";
     autoFocusOnSelect: boolean;
+    /** 平台默认模型 offer（由账户偏好同步） */
+    imageOfferId?: number;
+    videoOfferId?: number;
+    textOfferId?: number;
+    audioOfferId?: number;
 };
 
 export type WebdavSyncConfig = {
@@ -145,7 +150,7 @@ type ConfigStore = {
     importChannelCredentials: (input: { baseUrl?: string | null; apiKey?: string | null }) => ChannelCredentialsImportResult;
     updateWebdavConfig: <K extends keyof WebdavSyncConfig>(key: K, value: WebdavSyncConfig[K]) => void;
     isAiConfigReady: (config: AiConfig, model: string) => boolean;
-    openConfigDialog: (shouldPromptContinue?: boolean, tab?: ConfigTabKey) => void;
+    openConfigDialog: (shouldPromptContinue?: boolean, tab?: ConfigTabKey) => void; // 平台模式下改为跳转登录/账户
     setConfigDialogOpen: (isOpen: boolean) => void;
     clearPromptContinue: () => void;
 };
@@ -207,8 +212,10 @@ export function resolveModelScript(config: AiConfig, value: string) {
     return findChannelModel(config, value)?.model.script?.trim() || "";
 }
 
-function isAiConfigReady(config: AiConfig, model: string) {
-    const match = findChannelModel(config, model);
+function isAiConfigReady(_config: AiConfig, _model: string) {
+    // 平台模式：密钥在服务端，登录即可生成
+    if (typeof localStorage !== "undefined" && localStorage.getItem("platform.auth.token")) return true;
+    const match = findChannelModel(_config, _model);
     return Boolean(match && match.channel.baseUrl.trim() && match.channel.apiKey.trim());
 }
 
@@ -241,24 +248,26 @@ export const useConfigStore = create<ConfigStore>()(
                     },
                 })),
             isAiConfigReady: (config, model) => isAiConfigReady(config, model),
-            openConfigDialog: (shouldPromptContinue = false, configTab = "channels") => set({ isConfigOpen: true, shouldPromptContinue, configTab }),
+            openConfigDialog: () => {
+                const loggedIn = typeof localStorage !== "undefined" && Boolean(localStorage.getItem("platform.auth.token"));
+                window.location.assign(loggedIn ? "/account" : "/login");
+            },
             setConfigDialogOpen: (isConfigOpen) => set({ isConfigOpen }),
             clearPromptContinue: () => set({ shouldPromptContinue: false }),
         }),
         {
             name: CONFIG_STORE_KEY,
-            partialize: (state) => ({ config: state.config, webdav: state.webdav }),
+            partialize: (state) => ({ config: state.config }),
             merge: (persisted, current) => {
                 const persistedState = (persisted || {}) as Partial<ConfigStore>;
                 const persistedConfig = (persistedState.config || {}) as Partial<AiConfig>;
-                const persistedWebdav = (persistedState.webdav || {}) as Partial<WebdavSyncConfig>;
                 const config = { ...defaultConfig, ...persistedConfig };
                 if (!Array.isArray(persistedConfig.channels)) config.channels = [];
                 const channels = normalizeChannels(config);
                 const models = modelOptionsFromChannels(channels);
                 return {
                     ...current,
-                    webdav: { ...defaultWebdavSyncConfig, ...persistedWebdav },
+                    webdav: defaultWebdavSyncConfig,
                     config: {
                         ...config,
                         channelMode: "local",

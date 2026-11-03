@@ -1,0 +1,39 @@
+[
+  {
+    "name": "积分运营",
+    "router": "/credit",
+    "perms": null,
+    "type": 0,
+    "icon": "icon-wallet",
+    "orderNum": 1,
+    "viewPath": null,
+    "keepAlive": true,
+    "isShow": true,
+    "childMenus": [
+      {
+        "name": "积分流水",
+        "router": "/credit/ledger",
+        "perms": "credit:ledger:page,credit:ledger:list,credit:ledger:info,credit:ledger:adjust,credit:ledger:topup",
+        "type": 1,
+        "icon": "icon-log",
+        "orderNum": 1,
+        "viewPath": "modules/credit/views/ledger.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      },
+      {
+        "name": "兑换码",
+        "router": "/credit/redeem",
+        "perms": "credit:redeem:page,credit:redeem:list,credit:redeem:info,credit:redeem:createCodes,credit:redeem:void",
+        "type": 1,
+        "icon": "icon-favor",
+        "orderNum": 2,
+        "viewPath": "modules/credit/views/redeem.vue",
+        "keepAlive": true,
+        "isShow": true,
+        "childMenus": []
+      }
+    ]
+  }
+]

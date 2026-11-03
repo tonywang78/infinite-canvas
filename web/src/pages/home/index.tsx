@@ -1,120 +1,79 @@
-import { ArrowRight } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
-import { App, Button, Image, Tag } from "antd";
-import { useNavigate } from "react-router-dom";
-import { Trans, useTranslation } from "react-i18next";
-
-import { fetchPrompts, type Prompt } from "@/services/api/prompts";
-import { navigationTools } from "@/constant/navigation-tools";
-import i18n from "@/i18n";
-import { cn } from "@/lib/utils";
-
-function Highlighter({ action, color, children }: { action: "highlight" | "underline"; color: string; children?: ReactNode }) {
-    return (
-        <span className="relative inline-block px-1">
-            {action === "highlight" ? (
-                <span className="absolute inset-x-0 bottom-0 top-1 rounded-sm opacity-45" style={{ backgroundColor: color }} />
-            ) : (
-                <span className="absolute inset-x-0 bottom-0 h-1 rounded-full opacity-80" style={{ backgroundColor: color }} />
-            )}
-            <span className="relative font-medium text-stone-800 dark:text-stone-200">{children}</span>
-        </span>
-    );
-}
+import { ArrowRight, ImagePlus, Layers3, Sparkles, WalletCards } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Button } from "antd";
+import { Link, useNavigate } from "react-router-dom";
+import { platformApi } from "@/services/api/platform";
+import { useAuthStore } from "@/stores/use-auth-store";
 
 export default function IndexPage() {
-    const { message } = App.useApp();
-    const { t } = useTranslation();
     const navigate = useNavigate();
-    const [primaryTool] = navigationTools;
-    const [promptShowcase, setPromptShowcase] = useState<Prompt[]>([]);
-    const [previewIndex, setPreviewIndex] = useState(0);
-    const [previewOpen, setPreviewOpen] = useState(false);
+    const user = useAuthStore((s) => s.user);
+    const [announcement, setAnnouncement] = useState("");
+    const [gift, setGift] = useState(100);
 
     useEffect(() => {
-        void fetchPrompts({ pageSize: 12 })
-            .then((data) => setPromptShowcase(data.items))
-            .catch((error) => message.error(error instanceof Error ? error.message : i18n.t("home.promptError")));
-    }, [message]);
+        void platformApi
+            .sitePublic()
+            .then((cfg) => {
+                setAnnouncement(cfg.announcement || "");
+                setGift(cfg.registerGiftPoints || 100);
+            })
+            .catch(() => undefined);
+    }, []);
 
     return (
-        <main className="relative h-full overflow-y-auto bg-background bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] text-stone-950 dark:bg-[radial-gradient(rgba(245,245,244,.18)_1px,transparent_1px)] dark:text-stone-100">
-            <section className="relative mx-auto min-h-[calc(100vh-4rem)] max-w-7xl overflow-hidden px-6">
-                <div className="pointer-events-none absolute left-[15%] top-24 size-20 rounded-full border border-dashed border-stone-200 dark:border-stone-800" />
-                <div className="pointer-events-none absolute right-[23%] top-[48%] size-20 rounded-full border border-dashed border-stone-200 dark:border-stone-800" />
-
-                <div className="relative flex min-h-[620px] flex-col items-center justify-center pt-10 text-center">
-                    <h1 className="ai-title-aurora max-w-5xl text-balance text-5xl font-semibold tracking-normal sm:text-7xl lg:text-8xl">{t("meta.title")}</h1>
-                    <p className="mt-8 max-w-3xl text-balance text-lg leading-8 text-stone-500 dark:text-stone-400">
-                        <Trans i18nKey="home.description" components={{ canvas: <Highlighter action="underline" color="#FF9800" />, content: <Highlighter action="highlight" color="#87CEFA" /> }} />
-                    </p>
-                    <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-                        <Button type="primary" size="large" onClick={() => navigate(`/${primaryTool.slug}`)} icon={<ArrowRight className="size-4" />} iconPlacement="end">
-                            {t("home.start")}
-                        </Button>
-                        <Button size="large" onClick={() => navigate("/canvas")}>
-                            {t("home.openCanvas")}
-                        </Button>
-                    </div>
+        <main className="relative h-full overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(251,146,60,0.18),_transparent_42%),linear-gradient(180deg,#fffaf5,#f8fafc)] text-stone-950 dark:bg-[radial-gradient(circle_at_top,_rgba(251,146,60,0.12),_transparent_40%),linear-gradient(180deg,#1c1917,#0c0a09)] dark:text-stone-100">
+            {announcement ? (
+                <div className="border-b border-orange-200/70 bg-orange-50 px-4 py-2 text-center text-sm text-orange-900 dark:border-orange-900/40 dark:bg-orange-950/40 dark:text-orange-100">
+                    {announcement}
                 </div>
+            ) : null}
 
-                <section className="relative mx-auto mb-20 max-w-6xl border-t border-stone-200 pt-12 dark:border-stone-800">
-                    <div className="mb-8 grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-start">
-                        <div />
-                        <div className="max-w-2xl text-center">
-                            <h2 className="text-3xl font-semibold text-stone-950 dark:text-stone-100">{t("home.showcaseTitle")}</h2>
-                            <p className="mt-3 text-base leading-7 text-stone-500 dark:text-stone-400">{t("home.showcaseDescription")}</p>
+            <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl flex-col justify-center px-6 py-16">
+                <p className="text-sm font-medium tracking-[0.2em] text-orange-600 dark:text-orange-300">INFINITE CANVAS</p>
+                <h1 className="mt-4 max-w-4xl text-balance text-5xl font-semibold tracking-tight sm:text-7xl">把灵感铺成一张无限画布</h1>
+                <p className="mt-6 max-w-2xl text-lg leading-8 text-stone-600 dark:text-stone-300">
+                    注册即用平台模型，按次消耗积分。图片、视频、文本与提示词库在同一工作台完成，画布内容仍保存在你的浏览器本地。
+                </p>
+                <div className="mt-10 flex flex-wrap gap-3">
+                    <Button type="primary" size="large" icon={<ArrowRight className="size-4" />} iconPlacement="end" onClick={() => navigate(user ? "/canvas" : "/register")}>
+                        {user ? "进入画布" : "免费注册"}
+                    </Button>
+                    <Button size="large" onClick={() => navigate(user ? "/account" : "/login")}>
+                        {user ? "账户中心" : "登录"}
+                    </Button>
+                </div>
+                <p className="mt-4 text-sm text-stone-500">新用户赠送 {gift} 积分 · 暂支持兑换码充值</p>
+
+                <div className="mt-20 grid gap-6 md:grid-cols-3">
+                    {[
+                        { icon: Layers3, title: "无限画布", desc: "节点编排、参考图、批量生成，连续迭代视觉方案。" },
+                        { icon: WalletCards, title: "积分计费", desc: "生成前可见预估积分，失败自动退回，流水可查。" },
+                        { icon: Sparkles, title: "平台模型", desc: "无需自备 API Key，管理员统一配置渠道与价目。" },
+                    ].map((item) => (
+                        <div key={item.title} className="rounded-3xl border border-stone-200/80 bg-white/70 p-6 backdrop-blur dark:border-stone-800 dark:bg-stone-950/50">
+                            <item.icon className="size-6 text-orange-500" />
+                            <h2 className="mt-4 text-xl font-medium">{item.title}</h2>
+                            <p className="mt-2 text-sm leading-6 text-stone-500 dark:text-stone-400">{item.desc}</p>
                         </div>
-                        <Button type="link" onClick={() => navigate("/prompts")} className="justify-self-center md:justify-self-end" icon={<ArrowRight className="size-4" />} iconPlacement="end">
-                            {t("home.viewPrompts")}
-                        </Button>
-                    </div>
-                    <div className="grid auto-rows-[210px] gap-4 md:grid-cols-4">
-                        {promptShowcase.map((item, index) => (
-                            <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => {
-                                    setPreviewIndex(index);
-                                    setPreviewOpen(true);
-                                }}
-                                className={cn(
-                                    "group relative cursor-pointer overflow-hidden border border-stone-200 bg-stone-100 text-left dark:border-stone-800 dark:bg-stone-900",
-                                    index === 0 && "md:col-span-2 md:row-span-2",
-                                    index === 3 && "md:col-span-2",
-                                )}
-                            >
-                                <img src={item.coverUrl} alt={item.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent p-4 text-white">
-                                    <div className="mb-2 flex flex-wrap gap-1.5">
-                                        {item.tags.slice(0, 2).map((tag) => (
-                                            <Tag key={tag} variant="filled" className="m-0 bg-white/15 text-[11px] text-white backdrop-blur">
-                                                {tag}
-                                            </Tag>
-                                        ))}
-                                    </div>
-                                    <h3 className="text-sm font-medium">{item.title}</h3>
-                                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/75">{item.prompt}</p>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </section>
-            </section>
-            <Image.PreviewGroup
-                preview={{
-                    open: previewOpen,
-                    current: previewIndex,
-                    onOpenChange: setPreviewOpen,
-                    onChange: setPreviewIndex,
-                }}
-            >
-                <div className="hidden">
-                    {promptShowcase.map((item) => (
-                        <Image key={item.id} src={item.coverUrl} alt={item.title} />
                     ))}
                 </div>
-            </Image.PreviewGroup>
+
+                <div className="mt-16 flex flex-wrap items-center gap-4 text-sm text-stone-500">
+                    <Link className="inline-flex items-center gap-2 hover:text-stone-900 dark:hover:text-stone-100" to="/image">
+                        <ImagePlus className="size-4" /> 图片工作台
+                    </Link>
+                    <Link className="hover:text-stone-900 dark:hover:text-stone-100" to="/prompts">
+                        提示词库
+                    </Link>
+                    <Link className="hover:text-stone-900 dark:hover:text-stone-100" to="/legal/terms">
+                        用户协议
+                    </Link>
+                    <Link className="hover:text-stone-900 dark:hover:text-stone-100" to="/legal/privacy">
+                        隐私政策
+                    </Link>
+                </div>
+            </section>
         </main>
     );
 }

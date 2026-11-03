@@ -1,29 +1,29 @@
-import { FileText, ImagePlus, Images, Maximize2, Settings2, Video } from "lucide-react";
+import { Clapperboard, GalleryVerticalEnd, Map, ScrollText, SlidersHorizontal, WandSparkles } from "lucide-react";
 
 export const navigationTools = [
     {
         slug: "canvas",
-        icon: Maximize2,
+        icon: Map,
     },
     {
         slug: "image",
-        icon: ImagePlus,
+        icon: WandSparkles,
     },
     {
         slug: "video",
-        icon: Video,
+        icon: Clapperboard,
     },
     {
         slug: "prompts",
-        icon: FileText,
+        icon: ScrollText,
     },
     {
         slug: "assets",
-        icon: Images,
+        icon: GalleryVerticalEnd,
     },
     {
         slug: "config",
-        icon: Settings2,
+        icon: SlidersHorizontal,
     },
 ] as const;
 

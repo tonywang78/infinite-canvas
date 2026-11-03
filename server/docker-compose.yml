@@ -1,0 +1,26 @@
+version: "3.1"
+
+services:
+  coolDB:
+    image: postgres:16-alpine
+    restart: always
+    volumes:
+      - ./data/postgres/:/var/lib/postgresql/data/
+    environment:
+      TZ: Asia/Shanghai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123456"
+      POSTGRES_DB: infinite_canvas
+    # 避开本机已安装的 Postgres（常占用 5432）
+    ports:
+      - 5433:5432
+
+  coolRedis:
+    image: redis
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data/redis/:/data/
+    ports:
+      - 6379:6379

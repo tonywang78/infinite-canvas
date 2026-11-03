@@ -8,6 +8,8 @@
 type RuntimeConfig = {
     ANALYTICS_GA4_ID?: string; // GA4 measurement ID (G-XXXX)
     ANALYTICS_BAIDU_ID?: string; // Baidu Analytics site ID
+    /** 平台 API 根地址；空字符串表示同域（经 nginx 反代） */
+    API_BASE_URL?: string;
 };
 
 declare global {
@@ -19,11 +21,15 @@ declare global {
 const runtime: RuntimeConfig = (typeof window !== "undefined" && window.__RUNTIME_CONFIG__) || {};
 
 function read(key: keyof RuntimeConfig, buildTime: string | undefined, fallback = ""): string {
-    const value = runtime[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
-    if (typeof buildTime === "string" && buildTime.trim()) return buildTime.trim();
+    if (Object.prototype.hasOwnProperty.call(runtime, key)) {
+        const value = runtime[key];
+        if (typeof value === "string") return value.trim();
+    }
+    if (typeof buildTime === "string") return buildTime.trim();
     return fallback;
 }
 
 export const ANALYTICS_GA4_ID = read("ANALYTICS_GA4_ID", import.meta.env.VITE_ANALYTICS_GA4_ID);
 export const ANALYTICS_BAIDU_ID = read("ANALYTICS_BAIDU_ID", import.meta.env.VITE_ANALYTICS_BAIDU_ID);
+/** 未注入时本地开发默认直连 8001；Docker 同域部署会注入空字符串 */
+export const API_BASE_URL = read("API_BASE_URL", import.meta.env.VITE_API_BASE_URL, "http://127.0.0.1:8001");

@@ -1,9 +1,36 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123456"
+      POSTGRES_DB: infinite_canvas
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
   app:
     image: infinite-canvas:local
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      - postgres
     ports:
       - "3000:3000"
     restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: "123456"
+      DB_NAME: infinite_canvas
+      API_BASE_URL: ""
+      DB_SYNC: "true"
+      DB_INIT: "true"
+      REGISTER_GIFT_POINTS: "100"
+      SECRETS_MASTER_KEY: infinite-canvas-dev-master-key-change-me!!

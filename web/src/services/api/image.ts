@@ -692,6 +692,26 @@ function parseGeminiImagePayload(payload: GeminiPayload) {
 }
 
 export async function requestGeneration(config: AiConfig, prompt: string, options?: RequestOptions) {
+    if (import.meta.env.VITE_PLATFORM_MODE !== "false") {
+        const { isLoggedIn, platformApi } = await import("@/services/api/platform");
+        if (!isLoggedIn()) throw new Error("请先登录后再生成");
+        const offers = await platformApi.offers("image");
+        const offerId = Number(config.imageOfferId || (config as AiConfig & { platformOfferId?: number }).platformOfferId || offers[0]?.id);
+        if (!offerId) throw new Error("暂无可用图片模型，请联系管理员在后台配置渠道与价目");
+        const n = Math.max(1, Math.min(15, Math.floor(Math.abs(Number(config.count)) || 1)));
+        const quote = await platformApi.quote(offerId, { count: n, size: config.size, quality: config.quality });
+        if (!quote.enough) throw new Error(`积分不足：需要 ${quote.points}，当前余额 ${quote.balance}`);
+        const system = (config.systemPrompt || "").trim();
+        const finalPrompt = system ? `${system}\n\n${prompt}` : prompt;
+        const task = await platformApi.generateImage({
+            offerId,
+            prompt: finalPrompt,
+            n,
+            size: resolveRequestSize(config.size),
+            quality: normalizeQuality(config.quality),
+        });
+        return parseImagePayload(task.result || task);
+    }
     const requestConfig = resolveModelRequestConfig(config, config.model || config.imageModel);
     const n = Math.max(1, Math.min(15, Math.floor(Math.abs(Number(config.count)) || 1)));
     const script = resolveModelScript(config, config.model || config.imageModel);
