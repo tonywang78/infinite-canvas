@@ -105,6 +105,48 @@ export class GenerationVendorService {
     return res.data;
   }
 
+  /**
+   * 从视频轮询响应里提取可下载 URL。优先级与前端 videoResultUrl 保持一致。
+   */
+  extractVideoUrl(payload: Record<string, unknown> | null | undefined): string {
+    if (!payload || typeof payload !== 'object') return '';
+    const record = payload as Record<string, unknown>;
+    const content =
+      (record.content as Record<string, unknown> | null | undefined) || null;
+    const candidates = [
+      record.video_url,
+      record.result_url,
+      record.url,
+      content?.video_url,
+      content?.url,
+    ];
+    for (const value of candidates) {
+      if (typeof value === 'string' && value) return value;
+    }
+    return '';
+  }
+
+  /**
+   * 当轮询完成但仍未给出可下载 URL 时，调用 /videos/{id}/content 拉取二进制。
+   */
+  async downloadVideoContent(
+    channel: { baseUrl: string; apiKey: string },
+    id: string
+  ): Promise<Buffer> {
+    const url = joinUrl(channel.baseUrl, `videos/${id}/content`);
+    const res = await axios.get(url, {
+      headers: { Authorization: `Bearer ${channel.apiKey}` },
+      responseType: 'arraybuffer',
+      timeout: 180000,
+      validateStatus: () => true,
+    });
+    if (res.status >= 400) {
+      const message = Buffer.from(res.data).toString('utf8');
+      throw new CoolCommException(message || `上游错误 HTTP ${res.status}`);
+    }
+    return Buffer.from(res.data);
+  }
+
   async text(
     channel: { baseUrl: string; apiKey: string },
     body: Record<string, unknown>,

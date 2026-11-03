@@ -195,13 +195,119 @@ export class AppGenerationController extends BaseController {
           seconds: body.seconds || body.duration,
           size: body.size,
         });
+        const vendorId = String(data?.id || data?.data?.id || '');
+        const finalResult = await this.waitForVideoResult(
+          channel,
+          vendorId,
+          data
+        );
         return {
-          result: data,
-          vendorRequestId: data?.id || '',
+          result: finalResult,
+          vendorRequestId: vendorId,
         };
       },
     });
     return this.ok(result);
+  }
+
+  /**
+   * 在 /video 内服务端轮询直到拿到可下载 URL，避免浏览器直连第三方 poll 接口。
+   * 超时或上游失败时直接抛错，由 createAndRun 释放预扣积分。
+   */
+  private async waitForVideoResult(
+    channel: { baseUrl: string; apiKey: string },
+    vendorId: string,
+    created: Record<string, unknown> | null | undefined
+  ): Promise<{
+    id: string;
+    status: 'completed';
+    videoUrl: string;
+    url?: string;
+  }> {
+    // 上游创建即返回最终 URL（同步视频接口）时直接放行。
+    const createdPayload = this.unwrapVideoEnvelope(created);
+    const immediateUrl = this.generationVendorService.extractVideoUrl(
+      createdPayload
+    );
+    const immediateStatus = String(createdPayload?.status || '').toLowerCase();
+    if (immediateUrl && immediateStatus !== 'failed') {
+      return { id: vendorId, status: 'completed', videoUrl: immediateUrl };
+    }
+    if (!vendorId) {
+      throw new CoolCommException('上游未返回视频任务 ID');
+    }
+
+    const intervalMs = 5000;
+    const maxAttempts = 60; // 5 分钟上限，与单次 HTTP 请求合理超时对齐
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const polled = await this.generationVendorService.pollVideo(
+        channel,
+        vendorId
+      );
+      const payload = this.unwrapVideoEnvelope(polled);
+      const status = String(payload?.status || '').toLowerCase();
+      const url = this.generationVendorService.extractVideoUrl(payload);
+      if (url) {
+        return { id: vendorId, status: 'completed', videoUrl: url };
+      }
+      if (status === 'failed' || status === 'cancelled') {
+        const message =
+          (payload?.error as { message?: string } | null)?.message ||
+          (payload as { error_message?: string } | null)?.error_message ||
+          '上游视频生成失败';
+        throw new CoolCommException(message);
+      }
+      if (status === 'completed') {
+        // 状态已完成但无 URL，回退拉取 /content 二进制落盘后返回本地 URL。
+        const localUrl = await this.persistVideoContent(channel, vendorId);
+        return { id: vendorId, status: 'completed', videoUrl: localUrl };
+      }
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+    throw new CoolCommException('视频生成超时，请稍后重试');
+  }
+
+  private async persistVideoContent(
+    channel: { baseUrl: string; apiKey: string },
+    vendorId: string
+  ): Promise<string> {
+    const buffer = await this.generationVendorService.downloadVideoContent(
+      channel,
+      vendorId
+    );
+    const dir = path.join(pUploadPath(), 'temp');
+    fs.mkdirSync(dir, { recursive: true });
+    const name = `${vendorId}.mp4`;
+    const target = path.join(dir, name);
+    fs.writeFileSync(target, buffer);
+    return `/upload/temp/${name}`;
+  }
+
+  /**
+   * 兼容上游裸返回与 `{ code, data }` 信封两种格式，取出真正的视频任务对象。
+   */
+  private unwrapVideoEnvelope(
+    payload: unknown
+  ): Record<string, unknown> | null {
+    if (!payload || typeof payload !== 'object') return null;
+    const record = payload as Record<string, unknown>;
+    if (
+      'code' in record &&
+      record.code !== undefined &&
+      record.code !== 0 &&
+      record.code !== '0'
+    ) {
+      throw new CoolCommException(
+        (record as { msg?: string; message?: string }).msg ||
+          (record as { message?: string }).message ||
+          `上游错误 code ${record.code}`
+      );
+    }
+    const inner = record.data;
+    if (inner && typeof inner === 'object') {
+      return inner as Record<string, unknown>;
+    }
+    return record;
   }
 
   @Post('/audio', { summary: '音频生成' })
