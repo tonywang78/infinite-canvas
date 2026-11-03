@@ -1,0 +1,131 @@
+﻿diff --git a/CHANGELOG.md b/CHANGELOG.md
+index ce08def..8420143 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,9 +1,10 @@
+ # CHANGELOG
+ 
+ ## Unreleased
+ 
+++ [调整] 生成能力仅通过平台积分接口调用，移除浏览器直连上游与本地渠道配置。
+ + [新增] 画布 Agent 改为平台对话：登录后可直接聊天，创建文本节点与生图/生视频流程并触发生成，无需本机 Connect token。
+ + [调整] 管理后台「积分价目」的模型改为下拉选择展示名，不再手工填模型 ID。
+ + [调整] 管理后台「模型能力」的上游渠道改为下拉选择，不再手工填渠道 ID。
+ + [修复] 管理后台列表首屏偶发空表：等表格挂载后再自动拉取，避免本地接口过快丢刷新事件。
+ + [新增] 管理后台默认预置赞助商渠道（国际/国内线路），空 Key 且默认禁用，填入密钥后启用即可。
+diff --git a/Dockerfile b/Dockerfile
+index 8bfa028..3d86e67 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -7,11 +7,10 @@ RUN --mount=type=cache,target=/root/.bun/install/cache bun install --cache-dir=/
+ COPY VERSION /app/VERSION
+ COPY CHANGELOG.md /app/CHANGELOG.md
+ COPY web ./
+ # 同域反代，运行时由 config.js 注入 API 地址（默认同源）
+ ENV VITE_API_BASE_URL=
+-ENV VITE_PLATFORM_MODE=true
+ RUN bun run build
+ 
+ FROM oven/bun:1.3.13 AS admin-build
+ WORKDIR /app/admin
+ COPY admin/package.json admin/bun.lock ./
+diff --git a/docs/content/docs/progress/pending-test.mdx b/docs/content/docs/progress/pending-test.mdx
+index 269089d..99bcc2b 100644
+--- a/docs/content/docs/progress/pending-test.mdx
++++ b/docs/content/docs/progress/pending-test.mdx
+@@ -12,10 +12,13 @@ The current release needs manual verification in these areas:
+ - Account preferences: after login, Account → Preferences can set default platform offers and generation defaults; saving persists server-side and still applies after re-login on another browser. Local storage stats remain on Account and only reflect this device.
+ - Platform auth and credits: register with email or phone + password, receive gift credits, log in both ways, redeem a code, and see balance/ledger/tasks in Account. Generation without login should be blocked; successful image generation should deduct credits and failed/cancelled/timed-out tasks should refund holds.
+ - Admin cool-admin: configure a channel (API key stored server-side only), offer, and price rule; open dashboard metrics; sync a prompt source; run day reconciliation and release timed-out holds. End users must never see platform API keys or GitHub repo links in the product UI.
+ - Default channel seed: a fresh deploy should show 9 sponsor channels (Atlas, Metaso, 88API, Infistar intl/CN, PackyCode global/optimized, HeyRoute intl/CN), all empty-key and disabled until an admin fills a key and enables them, then configures offers/prices. Opening Upstream Channels should list them on first paint without clicking Refresh.
+ - Prompt library: after admin sync, `/prompts` and the home prompt showcase should read platform data; product UI must not show clickable GitHub source links.
++- Platform-only generation: while signed out, image, image-edit, video, text, and audio generation must fail and prompt the user to log in.
++- Reference image edits must only call this site’s `image-edit` and temp upload APIs; the browser Network panel must not show third-party AI domains.
++- Product UI must not expose channel API keys, call scripts, or a local AI proxy. Model choice is platform offers; keys appear only in admin.
+ 
+ - Saved model selection: save a canvas node with a model, then remove its provider or remove that model while another video model remains the default. Generation, retry and pending-video recovery should keep the unavailable model selected and open configuration instead of sending a request to the default or first provider. Re-selecting a valid model should allow generation. Changing only the API key on the same provider should preserve the model; switching a config node from a valid image model to video should still use the video default.
+ 
+ - Local storage usage on HTTP deployments: opening the Local storage settings tab at an HTTP origin without `navigator.storage.estimate` should still show IndexedDB content statistics, display an unavailable quota instead of an error, and keep the canvas data unchanged.
+ - Canvas image previews: canvas image nodes, the left element list, the node reference bar, my-assets cards, the asset picker, image workbench result cards and history thumbnails, and the image/video workbench reference strips all render from a preview capped at a 768px long edge, so image-heavy views no longer decode the originals. Previews live locally only: canvas data, asset data, generation history, exported zips, and WebDAV sync must never contain preview content, and previews should be cleaned up when an image is deleted or no longer used. Opening the full-size image, editing, downloading, exporting, and generation references must keep using the original; an image that is already at or under 768px, exists only as a remote URL, or uses a custom cover should fall back to the original.
+diff --git a/docs/content/docs/progress/pending-test.zh-CN.mdx b/docs/content/docs/progress/pending-test.zh-CN.mdx
+index b68b427..972db00 100644
+--- a/docs/content/docs/progress/pending-test.zh-CN.mdx
++++ b/docs/content/docs/progress/pending-test.zh-CN.mdx
+@@ -12,10 +12,13 @@ description: 当前版本已实现但仍需人工验证的变更项
+ - 管理后台：配置渠道（密钥仅存服务端）、模型能力与价目；查看运营看板；同步提示词来源；做日对账并释放超时预扣。产品界面不得出现平台 API Key 或 GitHub 仓库外链。
+ - 默认渠道种子：全新部署后管理后台应出现 Atlas / 秘塔 / 88API / Infistar 国际与国内 / PackyCode 全球与优化 / HeyRoute 国际与国内共 9 条渠道，均为空 Key、默认禁用；填入 Key 并启用后，再配置 offer/价目才可用于平台生成。进入「上游渠道」首屏即应自动列出，无需手动点刷新。
+ - 模型能力：新增/编辑时「上游渠道」为下拉选择（含未启用渠道，标注「未启用」），列表与搜索也应按渠道名展示/筛选，不能再手工填渠道 ID。
+ - 积分价目：新增/编辑时「模型」为下拉选择（展示名 + 能力/上游模型名），列表与搜索按模型名展示/筛选，不能再手工填模型 ID。
+ - 提示词库：管理员同步后，提示词页与首页展示读取平台数据。
++- 平台生成：未登录时点击生图、改图、视频、文本、音频均应失败并提示登录。
++- 有参考图改图只请求本站 `image-edit` 与 temp 上传，浏览器 Network 中不应出现第三方 AI 域名。
++- 产品界面无渠道 API Key、调用脚本、本地 AI 代理入口；模型选择为平台 offer，密钥仅出现在管理后台。
+ 
+ - 已保存模型失效：画布节点已选模型后，移除所属渠道或该模型，并保留另一个默认视频模型。生成、重试及未完成视频恢复应保留失效模型选择并打开配置，不能向默认模型或第一个渠道发送请求；明确重新选择有效模型后才可生成。同渠道仅换 API Key 应保留原模型；配置节点从有效图片模型切换到视频类型时仍应使用视频默认模型。
+ 
+ - 画布图片预览：画布图片节点、左侧元素列表、节点参考栏、我的资产卡片、资产选择弹窗、生图工作台的结果卡片与历史缩略图、生图和视频工作台的参考图都使用最大边长 768px 的缩略图渲染，使图片较多时不再反复解码原图。缩略图只存在本地，画布数据、资产数据、生图历史、导出包和 WebDAV 同步里都不应出现缩略图内容，删除图片或用不到时也应一并清掉。点开大图、编辑、下载、导出和生成参考图必须继续使用原始图片；图片本身不超过 768px、只有远端地址（跨域读不到本地内容）、或使用自定义封面时应回退原图。
+ - 画布拖拽与连线渲染性能：单选、多选、拖动整组节点时位置跟手，松手后落点与拖动过程一致；把节点拖到组上方时组高亮出现和消失的时机正常，松手能正确加入组，拖出组也能正确移出；组节点自身被拖动时不应出现组高亮。画布缩放和平移到只显示局部时，视口内的连线应完整显示（包含两端节点都在视口外、但曲线穿过视口的连线），连线的点击选中和右键菜单仍可用，连线拖拽创建过程中的虚线跟随正常。
+diff --git a/web/.env.example b/web/.env.example
+index 50dd26b..0ab1b9a 100644
+--- a/web/.env.example
++++ b/web/.env.example
+@@ -1,4 +1,2 @@
+ # 平台 API（cool-admin Midway）
+ VITE_API_BASE_URL=http://127.0.0.1:8001
+-# 设为 false 可回退浏览器直连上游（仅开发调试）
+-VITE_PLATFORM_MODE=true
+diff --git a/web/src/services/api/prompts.ts b/web/src/services/api/prompts.ts
+index c3d9e7a..9f85c33 100644
+--- a/web/src/services/api/prompts.ts
++++ b/web/src/services/api/prompts.ts
+@@ -135,31 +135,29 @@ async function getAllPrompts(): Promise<Prompt[]> {
+     );
+     return settled.flat();
+ }
+ 
+ export async function fetchPrompts({ keyword = "", tag = [], category = ALL_PROMPTS_OPTION, page = 1, pageSize = 20 }: { keyword?: string; tag?: string[]; category?: string; page?: number; pageSize?: number } = {}) {
+-    if (import.meta.env.VITE_PLATFORM_MODE !== "false") {
+-        try {
+-            const { platformApi } = await import("@/services/api/platform");
+-            const data = await platformApi.prompts({
+-                keyword,
+-                tag: tag[0],
+-                page,
+-                pageSize,
+-            });
+-            const items = (data.items || []) as Prompt[];
+-            const filtered =
+-                category && category !== ALL_PROMPTS_OPTION ? items.filter((item) => item.category === category) : items;
+-            return {
+-                items: filtered,
+-                tags: data.tags || collectTags(filtered),
+-                categories: data.categories || [],
+-                total: data.total || filtered.length,
+-            };
+-        } catch {
+-            // fall through to local cache when platform is offline
+-        }
++    try {
++        const { platformApi } = await import("@/services/api/platform");
++        const data = await platformApi.prompts({
++            keyword,
++            tag: tag[0],
++            page,
++            pageSize,
++        });
++        const items = (data.items || []) as Prompt[];
++        const filtered =
++            category && category !== ALL_PROMPTS_OPTION ? items.filter((item) => item.category === category) : items;
++        return {
++            items: filtered,
++            tags: data.tags || collectTags(filtered),
++            categories: data.categories || [],
++            total: data.total || filtered.length,
++        };
++    } catch {
++        // fall through to local cache when platform is offline
+     }
+     const items = await getAllPrompts();
+     const normalizedKeyword = keyword.trim().toLowerCase();
+     const normalizedPage = Math.max(1, page);
+     const normalizedPageSize = Math.max(1, Math.min(100, pageSize));

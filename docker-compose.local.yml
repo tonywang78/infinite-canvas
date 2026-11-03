@@ -22,6 +22,8 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+    volumes:
+      - ./data/upload:/data/upload
     environment:
       NODE_ENV: production
       DB_HOST: postgres
@@ -30,6 +32,7 @@ services:
       DB_PASSWORD: "123456"
       DB_NAME: infinite_canvas
       API_BASE_URL: ""
+      UPLOAD_DIR: /data/upload
       DB_SYNC: "true"
       DB_INIT: "true"
       REGISTER_GIFT_POINTS: "100"

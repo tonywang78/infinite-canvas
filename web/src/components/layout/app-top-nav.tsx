@@ -6,9 +6,11 @@ import { useTranslation } from "react-i18next";
 import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
 import { UserStatusActions } from "@/components/layout/user-status-actions";
+import { canvasThemes } from "@/lib/canvas-theme";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useAgentStore } from "@/stores/use-agent-store";
+import { useThemeStore } from "@/stores/use-theme-store";
 
 export function AppTopNav() {
     const { t } = useTranslation();
@@ -17,13 +19,18 @@ export function AppTopNav() {
     const togglePanel = useAgentStore((state) => state.togglePanel);
     const panelOpen = useAgentStore((state) => state.panelOpen);
     const hideHeader = /^\/canvas\/[^/]+/.test(pathname);
+    const isHome = pathname === "/";
+    const canvasTheme = canvasThemes[useThemeStore((state) => state.theme)];
     const slug = pathname.split("/").filter(Boolean)[0];
     const activeToolSlug = navigationTools.some((tool) => tool.slug === slug) ? (slug as NavigationToolSlug) : undefined;
 
     return (
         <>
             {!hideHeader ? (
-                <header className="sticky top-0 z-20 h-14 shrink-0 border-b border-stone-200 bg-background/90 backdrop-blur-xl dark:border-stone-800">
+                <header
+                    className={cn("sticky top-0 z-20 h-14 shrink-0 border-b backdrop-blur-xl", isHome ? "" : "border-stone-200 bg-background/90 dark:border-stone-800")}
+                    style={isHome ? { background: canvasTheme.canvas.background, borderColor: canvasTheme.node.stroke } : undefined}
+                >
                     <div className="mx-auto flex h-full max-w-7xl items-stretch justify-between gap-5 px-6">
                         <div className="flex min-w-0 items-center">
                             <Link to="/" className="flex h-full shrink-0 items-center gap-2 text-sm font-semibold leading-none tracking-tight text-stone-950 transition hover:text-stone-600 dark:text-stone-100 dark:hover:text-stone-300">
@@ -71,9 +78,11 @@ export function AppTopNav() {
                         </div>
 
                         <div className="my-auto flex h-9 min-w-0 items-center justify-end gap-2 justify-self-end whitespace-nowrap">
-                            <Tooltip title={t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")}>
-                                <Button type="text" shape="circle" className="!h-8 !w-8 !min-w-8" icon={<Bot className="size-4" />} onClick={togglePanel} aria-label={t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")} />
-                            </Tooltip>
+                            {isHome ? null : (
+                                <Tooltip title={t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")}>
+                                    <Button type="text" shape="circle" className="!h-8 !w-8 !min-w-8" icon={<Bot className="size-4" />} onClick={togglePanel} aria-label={t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")} />
+                                </Tooltip>
+                            )}
                             <UserStatusActions />
                         </div>
                     </div>

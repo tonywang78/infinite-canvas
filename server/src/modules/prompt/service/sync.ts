@@ -7,6 +7,10 @@ import * as moment from 'moment';
 import { PromptSourceEntity } from '../entity/source';
 import { PromptItemEntity } from '../entity/item';
 import { PromptSyncRunEntity } from '../entity/sync-run';
+import {
+  mirrorPromptImageUrls,
+  resolvePromptMediaUrl,
+} from './mirror-image';
 
 @Provide()
 export class PromptSyncService extends BaseService {
@@ -64,28 +68,72 @@ export class PromptSyncService extends BaseService {
       : Array.isArray(res.data?.items)
         ? res.data.items
         : [];
+
+    const drafts: Array<{
+      externalId: string;
+      title: string;
+      prompt: string;
+      description: string;
+      coverUrl: string;
+      tagsJson: string[];
+      referenceImageUrlsJson: string[];
+      sourceUrl: string;
+    }> = [];
     const seen = new Set<string>();
+    const imageUrls: string[] = [];
+
     for (const raw of list) {
       const externalId = String(
         raw.id || raw.slug || raw.title || JSON.stringify(raw).slice(0, 64)
       );
       seen.add(externalId);
-      const existing = await this.itemEntity.findOneBy({
-        sourceId: Equal(source.id),
-        externalId: Equal(externalId),
-      });
-      const payload = {
-        sourceId: source.id,
+      const referenceImageUrls = (
+        Array.isArray(raw.referenceImageUrls) ? raw.referenceImageUrls : []
+      )
+        .map((url: unknown) => resolvePromptMediaUrl(source.url, String(url)))
+        .filter(Boolean);
+      const coverUrl =
+        resolvePromptMediaUrl(
+          source.url,
+          String(raw.coverUrl || raw.cover || raw.image || '')
+        ) ||
+        referenceImageUrls[0] ||
+        '';
+      if (coverUrl) imageUrls.push(coverUrl);
+      imageUrls.push(...referenceImageUrls);
+      drafts.push({
         externalId,
         title: String(raw.title || raw.name || '未命名'),
         prompt: String(raw.prompt || raw.content || ''),
         description: String(raw.description || ''),
-        coverUrl: String(raw.coverUrl || raw.cover || raw.image || ''),
+        coverUrl,
         tagsJson: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
-        referenceImageUrlsJson: Array.isArray(raw.referenceImageUrls)
-          ? raw.referenceImageUrls.map(String)
-          : [],
+        referenceImageUrlsJson: referenceImageUrls,
         sourceUrl: String(raw.sourceUrl || ''),
+      });
+    }
+
+    const mirrored = await mirrorPromptImageUrls(imageUrls);
+
+    for (const draft of drafts) {
+      const coverUrl = mirrored.get(draft.coverUrl) || draft.coverUrl;
+      const referenceImageUrlsJson = draft.referenceImageUrlsJson.map(
+        url => mirrored.get(url) || url
+      );
+      const existing = await this.itemEntity.findOneBy({
+        sourceId: Equal(source.id),
+        externalId: Equal(draft.externalId),
+      });
+      const payload = {
+        sourceId: source.id,
+        externalId: draft.externalId,
+        title: draft.title,
+        prompt: draft.prompt,
+        description: draft.description,
+        coverUrl,
+        tagsJson: draft.tagsJson,
+        referenceImageUrlsJson,
+        sourceUrl: draft.sourceUrl,
         deleted: false,
       };
       if (existing) {
@@ -94,6 +142,7 @@ export class PromptSyncService extends BaseService {
         await this.itemEntity.save(this.itemEntity.create(payload));
       }
     }
+
     const oldItems = await this.itemEntity.findBy({
       sourceId: Equal(source.id),
       deleted: false,

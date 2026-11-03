@@ -4,6 +4,7 @@ import { runPromptSource, type RawPrompt } from "./prompt-source-runtime";
 import { usePromptSourceStore } from "@/stores/use-prompt-source-store";
 import i18n from "@/i18n";
 import type { PromptSource } from "./prompt-source-presets";
+import { getApiBase } from "@/services/api/platform";
 
 export type Prompt = RawPrompt & {
     sourceId: string;
@@ -136,6 +137,28 @@ async function getAllPrompts(): Promise<Prompt[]> {
     return settled.flat();
 }
 
+function resolvePlatformMediaUrl(url: string) {
+    const value = String(url || "").trim();
+    if (!value) return "";
+    if (/^(https?:|data:|blob:)/i.test(value)) return value;
+    if (value.startsWith("/")) return `${getApiBase()}${value}`;
+    return value;
+}
+
+function withPlatformMediaUrls(item: Prompt): Prompt {
+    return {
+        ...item,
+        coverUrl: resolvePlatformMediaUrl(item.coverUrl),
+        referenceImageUrls: Array.isArray(item.referenceImageUrls) ? item.referenceImageUrls.map(resolvePlatformMediaUrl) : [],
+        githubUrl: item.githubUrl || item.sourceUrl || "",
+        description: item.description || "",
+        tags: Array.isArray(item.tags) ? item.tags : [],
+        preview: item.preview || "",
+        createdAt: item.createdAt || "",
+        updatedAt: item.updatedAt || "",
+    };
+}
+
 export async function fetchPrompts({ keyword = "", tag = [], category = ALL_PROMPTS_OPTION, page = 1, pageSize = 20 }: { keyword?: string; tag?: string[]; category?: string; page?: number; pageSize?: number } = {}) {
     try {
         const { platformApi } = await import("@/services/api/platform");
@@ -145,7 +168,7 @@ export async function fetchPrompts({ keyword = "", tag = [], category = ALL_PROM
             page,
             pageSize,
         });
-        const items = (data.items || []) as Prompt[];
+        const items = ((data.items || []) as Prompt[]).map(withPlatformMediaUrls);
         const filtered =
             category && category !== ALL_PROMPTS_OPTION ? items.filter((item) => item.category === category) : items;
         return {

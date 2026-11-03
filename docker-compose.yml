@@ -22,6 +22,8 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+    volumes:
+      - ./data/upload:/data/upload
     environment:
       NODE_ENV: production
       DB_HOST: postgres
@@ -31,6 +33,7 @@ services:
       DB_NAME: infinite_canvas
       # 同域反代，留空即可；前台请求 /app，管理端请求 /api
       API_BASE_URL: ""
+      UPLOAD_DIR: /data/upload
       DB_SYNC: "true"
       DB_INIT: "true"
       REGISTER_GIFT_POINTS: "100"

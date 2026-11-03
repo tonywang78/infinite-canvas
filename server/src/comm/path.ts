@@ -31,7 +31,9 @@ export const pDataPath = () => {
  * @returns
  */
 export const pUploadPath = () => {
-  const uploadPath = path.join(pDataPath(), 'upload');
+  const uploadPath = process.env.UPLOAD_DIR
+    ? path.resolve(process.env.UPLOAD_DIR)
+    : path.join(pDataPath(), 'upload');
   if (!fs.existsSync(uploadPath)) {
     fs.mkdirSync(uploadPath, { recursive: true });
   }
