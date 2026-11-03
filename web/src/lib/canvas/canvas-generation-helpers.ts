@@ -1,4 +1,4 @@
-import { defaultConfig, resolveModelForCapability, type AiConfig } from "@/stores/use-config-store";
+import { defaultConfig, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 import i18n from "@/i18n";
 import { ensureImagePreview, resolveImageUrl, uploadImage } from "@/services/image-storage";
 import { resolveMediaUrl } from "@/services/file-storage";
@@ -103,9 +103,12 @@ export function getInputSummary(inputs: NodeGenerationInput[]) {
 }
 
 export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | undefined, mode: CanvasNodeGenerationMode): AiConfig {
+    const capability = mode as ModelCapability;
+    const nodeOfferId = node?.metadata?.offerId;
+    const offerId = Number.isFinite(nodeOfferId) && nodeOfferId ? nodeOfferId : undefined;
     return {
         ...config,
-        model: resolveModelForCapability(config, node?.metadata?.model, mode),
+        ...(capability === "image" ? { imageOfferId: offerId ?? config.imageOfferId } : capability === "video" ? { videoOfferId: offerId ?? config.videoOfferId } : capability === "audio" ? { audioOfferId: offerId ?? config.audioOfferId } : { textOfferId: offerId ?? config.textOfferId }),
         reasoningEffort: node?.metadata?.reasoningEffort || config.reasoningEffort || defaultConfig.reasoningEffort,
         quality: node?.metadata?.quality || config.quality || defaultConfig.quality,
         size: node?.metadata?.size || config.size || defaultConfig.size,

@@ -18,7 +18,7 @@ import { resolveImageUrl, ensureImagePreview, getImagePreviewRevision, previewUr
 import { createVideoGenerationTask, pollVideoGenerationTask, storeGeneratedVideo, type VideoGenerationTask } from "@/services/api/video";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { useWorkbenchAgentStore } from "@/stores/use-workbench-agent-store";
-import { boolConfig, modelOptionLabel, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
+import { boolConfig, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 import type { ReferenceImage } from "@/types/image";
 import i18n from "@/i18n";
@@ -60,7 +60,7 @@ type GenerationLog = {
     error?: string;
 };
 
-type GenerationLogConfig = Pick<AiConfig, "model" | "videoModel" | "size" | "vquality" | "videoSeconds" | "videoGenerateAudio" | "videoWatermark" | "videoMode">;
+type GenerationLogConfig = { offerId?: number; size: string; vquality: string; videoSeconds: string; videoGenerateAudio: string; videoWatermark: string; videoMode: string };
 
 type UpdateAiConfig = <K extends keyof AiConfig>(key: K, value: AiConfig[K]) => void;
 
@@ -102,7 +102,7 @@ export default function VideoPage() {
     const processedCommandRef = useRef(0);
     const agentTaskIdRef = useRef<string | undefined>(undefined);
 
-    const model = effectiveConfig.videoModel || effectiveConfig.model;
+    const model = effectiveConfig.videoOfferId;
     const canGenerate = Boolean(prompt.trim());
 
     useEffect(() => {
@@ -226,7 +226,7 @@ export default function VideoPage() {
             message.error(t("videoWorkbench.promptRequired"));
             return null;
         }
-        if (!isAiConfigReady(effectiveConfig, model)) {
+        if (!isAiConfigReady(effectiveConfig)) {
             message.warning(t("workbench.configFirst"));
             openConfigDialog(true);
             return null;
@@ -313,7 +313,18 @@ export default function VideoPage() {
         setRunning(true);
         setStartedAt((value) => value || performance.now());
         setResults((value) => (value.length ? value : [{ id: log.id, status: "pending" }]));
-        const taskConfig = buildVideoConfig({ ...effectiveConfig, ...log.config }, log.task.model || log.model);
+        const taskConfig = buildVideoConfig(
+            {
+                ...effectiveConfig,
+                size: log.config.size || effectiveConfig.size,
+                videoSeconds: log.config.videoSeconds || effectiveConfig.videoSeconds,
+                vquality: log.config.vquality || effectiveConfig.vquality,
+                videoGenerateAudio: log.config.videoGenerateAudio || effectiveConfig.videoGenerateAudio,
+                videoWatermark: log.config.videoWatermark || effectiveConfig.videoWatermark,
+                videoMode: log.config.videoMode || effectiveConfig.videoMode,
+            },
+            log.config.offerId ?? effectiveConfig.videoOfferId,
+        );
         try {
             for (let attempt = 0; attempt < 120; attempt += 1) {
                 const state = await pollVideoGenerationTask(configOverride || taskConfig, log.task);
@@ -359,7 +370,7 @@ export default function VideoPage() {
         setLogsOpen(false);
         setPrompt(log.prompt);
         setReferences(log.references || []);
-        if (log.config.videoModel || log.model) updateConfig("videoModel", log.config.videoModel || log.model);
+        if (log.config.offerId) updateConfig("videoOfferId", log.config.offerId);
         if (log.config.size) updateConfig("size", log.config.size);
         if (log.config.vquality) updateConfig("vquality", log.config.vquality);
         if (log.config.videoSeconds) updateConfig("videoSeconds", log.config.videoSeconds);
@@ -444,7 +455,7 @@ export default function VideoPage() {
 
                             <div className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm dark:border-stone-800 dark:bg-stone-900 sm:hidden">
                                 <span className="truncate text-stone-500 dark:text-stone-400">
-                                    {modelOptionLabel(effectiveConfig, model)} · {normalizeResolution(effectiveConfig.vquality)}p · {videoSizeLabel(effectiveConfig.size)} · {normalizeVideoSeconds(effectiveConfig.videoSeconds)}s · {videoModeLabel(effectiveConfig.videoMode)}
+                                    {model ? `#${model}` : t("settingsPanels.model.select")} · {normalizeResolution(effectiveConfig.vquality)}p · {videoSizeLabel(effectiveConfig.size)} · {normalizeVideoSeconds(effectiveConfig.videoSeconds)}s · {videoModeLabel(effectiveConfig.videoMode)}
                                 </span>
                                 <Button size="small" type="text" icon={<SlidersHorizontal className="size-4" />} onClick={() => setSettingsOpen(true)}>
                                     {t("workbench.adjust")}
@@ -509,7 +520,7 @@ export default function VideoPage() {
     );
 }
 
-function GenerationSettings({ config, model, updateConfig, openConfigDialog }: { config: AiConfig; model: string; updateConfig: UpdateAiConfig; openConfigDialog: (shouldPromptContinue?: boolean) => void }) {
+function GenerationSettings({ config, model, updateConfig, openConfigDialog }: { config: AiConfig; model?: number; updateConfig: UpdateAiConfig; openConfigDialog: (shouldPromptContinue?: boolean) => void }) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const { t } = useTranslation();
 
@@ -517,7 +528,7 @@ function GenerationSettings({ config, model, updateConfig, openConfigDialog }: {
         <>
             <label className="col-span-2 block min-w-0 sm:col-span-1">
                 <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">{t("workbench.model")}</span>
-                <ModelPicker config={config} value={model} onChange={(value) => updateConfig("videoModel", value)} capability="video" fullWidth onMissingConfig={() => openConfigDialog(false)} />
+                <ModelPicker config={config} value={model} onChange={(value) => updateConfig("videoOfferId", value)} capability="video" fullWidth onMissingConfig={() => openConfigDialog(false)} />
             </label>
             <div className="col-span-2">
                 <VideoSettingsPanel config={config} onConfigChange={(key, value) => updateConfig(key, value)} theme={theme} showTitle={false} className="space-y-4" />
@@ -686,7 +697,7 @@ async function normalizeLog(log: Partial<GenerationLog>): Promise<GenerationLog>
         title: log.title || log.model || i18n.t("workbench.untitled"),
         prompt: log.prompt || "",
         time: log.time || new Date().toLocaleString(i18n.resolvedLanguage, { hour12: false }),
-        model: log.model || config.videoModel || "",
+        model: log.model || (config.offerId ? String(config.offerId) : ""),
         config,
         references,
         durationMs: log.durationMs || 0,
@@ -727,9 +738,9 @@ function ReferenceOrderButtons({ index, total, onMove }: { index: number; total:
 }
 
 function normalizeLogConfig(log: Partial<GenerationLog>): GenerationLogConfig {
+    const offerId = Number(log.config?.offerId ?? log.config?.model ?? log.model);
     return {
-        model: log.config?.model || log.model || "",
-        videoModel: log.config?.videoModel || log.model || "",
+        offerId: Number.isFinite(offerId) && offerId > 0 ? offerId : undefined,
         size: log.config?.size || log.size || "",
         vquality: normalizeResolution(log.config?.vquality || log.resolution || ""),
         videoSeconds: log.config?.videoSeconds || log.seconds || "",
@@ -739,10 +750,9 @@ function normalizeLogConfig(log: Partial<GenerationLog>): GenerationLogConfig {
     };
 }
 
-function buildLog({ prompt, model, config, references, durationMs, status, task, video, error }: { prompt: string; model: string; config: AiConfig; references: ReferenceImage[]; durationMs: number; status: GenerationLog["status"]; task?: VideoGenerationTask; video?: GeneratedVideo; error?: string }): GenerationLog {
-    const logConfig = {
-        model: config.model,
-        videoModel: config.videoModel,
+function buildLog({ prompt, model, config, references, durationMs, status, task, video, error }: { prompt: string; model?: number | string; config: AiConfig; references: ReferenceImage[]; durationMs: number; status: GenerationLog["status"]; task?: VideoGenerationTask; video?: GeneratedVideo; error?: string }): GenerationLog {
+    const logConfig: GenerationLogConfig = {
+        offerId: config.videoOfferId,
         size: config.size,
         vquality: normalizeResolution(config.vquality),
         videoSeconds: config.videoSeconds,
@@ -756,7 +766,7 @@ function buildLog({ prompt, model, config, references, durationMs, status, task,
         title: prompt.slice(0, 12) || i18n.t("workbench.untitled"),
         prompt,
         time: new Date().toLocaleString(i18n.resolvedLanguage, { hour12: false }),
-        model,
+        model: model ? String(model) : "",
         config: logConfig,
         references,
         durationMs,
@@ -770,11 +780,10 @@ function buildLog({ prompt, model, config, references, durationMs, status, task,
     };
 }
 
-function buildVideoConfig(config: AiConfig, model: string): AiConfig {
+function buildVideoConfig(config: AiConfig, offerId?: number): AiConfig {
     return {
         ...config,
-        model,
-        videoModel: model,
+        videoOfferId: offerId ?? config.videoOfferId,
         size: normalizeVideoSize(config.size),
         videoSeconds: normalizeVideoSeconds(config.videoSeconds),
         vquality: normalizeResolution(config.vquality),

@@ -43,7 +43,7 @@ export function referenceUrl(image: ReferenceImage) {
 export function buildImageGenerationMetadata(type: CanvasImageGenerationType, config: AiConfig, count: number, references: ReferenceImage[]): CanvasNodeMetadata {
     return {
         generationType: type,
-        model: config.model,
+        offerId: config.imageOfferId,
         size: config.size,
         quality: config.quality,
         ...(config.background ? { background: config.background } : {}),
@@ -54,7 +54,7 @@ export function buildImageGenerationMetadata(type: CanvasImageGenerationType, co
 
 export function buildAudioGenerationMetadata(config: AiConfig): CanvasNodeMetadata {
     return {
-        model: config.model,
+        offerId: config.audioOfferId,
         audioVoice: config.audioVoice,
         audioFormat: config.audioFormat,
         audioSpeed: config.audioSpeed,

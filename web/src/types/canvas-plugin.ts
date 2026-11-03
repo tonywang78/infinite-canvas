@@ -17,14 +17,14 @@ export type GenerateVideoResult = { url: string; mimeType: string; width?: numbe
 export type GenerateTextOptions = { signal?: AbortSignal; model?: string; system?: string; onDelta?: (text: string) => void };
 export type GenerateTextResult = { text: string };
 export type PluginModelCapability = "image" | "video" | "text" | "audio";
-export type ModelOption = { value: string; label: string };
+export type ModelOption = { value: number; label: string };
 
 export type CanvasPluginAi = {
     generateImage: (prompt: string, options?: GenerateImageOptions) => Promise<GenerateImageResult>;
     generateVideo: (prompt: string, options?: GenerateVideoOptions) => Promise<GenerateVideoResult>;
     generateText: (prompt: string, options?: GenerateTextOptions) => Promise<GenerateTextResult>;
-    listModels: (capability?: PluginModelCapability) => ModelOption[];
-    defaultModel: (capability: PluginModelCapability) => string;
+    listModels: (capability?: PluginModelCapability) => Promise<ModelOption[]>;
+    defaultModel: (capability: PluginModelCapability) => number | undefined;
 };
 
 // Node-specific buttons appended to the hover toolbar.

@@ -9,7 +9,7 @@ import type { CanvasAgentSnapshot } from "@/lib/canvas/canvas-agent-ops";
 import { clampVideoSeconds } from "@/lib/media-size";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useAssetStore } from "@/stores/use-asset-store";
-import { modelOptionLabel, modelOptionName, normalizeModelOptionValue, selectableModelsByCapability, useConfigStore } from "@/stores/use-config-store";
+import { useConfigStore } from "@/stores/use-config-store";
 import { useWorkbenchAgentStore } from "@/stores/use-workbench-agent-store";
 
 // Execute site-level Agent tools in the browser, including canvas lists, workbench generation, prompt search, and asset operations.
@@ -93,7 +93,7 @@ function getGenerationStatus(input: SiteToolInput, canvasSnapshot?: CanvasAgentS
             const status = normalizeCanvasGenerationStatus(node.metadata?.status);
             if (!status || (nodeIds.size && !nodeIds.has(node.id))) return;
             const metadata = node.metadata || {};
-            if (!nodeIds.size && node.type !== "config" && status !== "running" && status !== "failed" && !metadata.generationMode && !metadata.generationType && !metadata.model) return;
+            if (!nodeIds.size && node.type !== "config" && status !== "running" && status !== "failed" && !metadata.generationMode && !metadata.generationType && !metadata.model && !metadata.offerId) return;
             tasks.push({ id: node.id, source: "canvas", status, kind: metadata.generationMode || node.type, title: node.title, prompt: compactPrompt(metadata.prompt || metadata.composerContent), projectId: canvasSnapshot.projectId, error: metadata.errorDetails });
         });
     }
@@ -148,10 +148,8 @@ function listCanvasProjects(input: SiteToolInput) {
 
 function getImageConfig() {
     const { config } = useConfigStore.getState();
-    const model = config.imageModel || config.model;
     return {
-        current: { model, modelName: modelOptionName(model), quality: config.quality || "auto", size: config.size || "1:1", count: config.count || "1" },
-        models: selectableModelsByCapability(config, "image").map((value) => ({ value, label: modelOptionLabel(config, value) })),
+        current: { offerId: config.imageOfferId, quality: config.quality || "auto", size: config.size || "1:1", count: config.count || "1" },
         qualityOptions: imageQualityOptions,
         scaleOptions: imageScaleOptions,
         sizeOptions: imageAspectOptions,
@@ -162,10 +160,10 @@ function getImageConfig() {
 function runImageWorkbench(input: SiteToolInput, navigate: NavigateFunction) {
     const configStore = useConfigStore.getState();
     const applied: Record<string, unknown> = {};
-    if (typeof input.model === "string" && input.model.trim()) {
-        const value = normalizeModelOptionValue(input.model, configStore.config.channels) || input.model;
-        configStore.updateConfig("imageModel", value);
-        applied.model = value;
+    if (input.offerId != null && Number.isFinite(Number(input.offerId))) {
+        const offerId = Number(input.offerId);
+        configStore.updateConfig("imageOfferId", offerId);
+        applied.offerId = offerId;
     }
     if (typeof input.quality === "string" && input.quality.trim()) {
         configStore.updateConfig("quality", input.quality);
@@ -189,11 +187,9 @@ function runImageWorkbench(input: SiteToolInput, navigate: NavigateFunction) {
 
 function getVideoConfig() {
     const { config } = useConfigStore.getState();
-    const model = config.videoModel || config.model;
     return {
         current: {
-            model,
-            modelName: modelOptionName(model),
+            offerId: config.videoOfferId,
             size: config.size || "1280x720",
             seconds: config.videoSeconds || "6",
             resolution: config.vquality || "720",
@@ -201,7 +197,6 @@ function getVideoConfig() {
             watermark: config.videoWatermark === "true",
             mode: config.videoMode === "reference" ? "reference" : "frames",
         },
-        models: selectableModelsByCapability(config, "video").map((value) => ({ value, label: modelOptionLabel(config, value) })),
         sizeOptions: videoSizeOptions,
         secondsRange: videoSecondsRange,
         resolutionOptions: videoResolutionOptions,
@@ -215,10 +210,10 @@ function getVideoConfig() {
 function runVideoWorkbench(input: SiteToolInput, navigate: NavigateFunction) {
     const configStore = useConfigStore.getState();
     const applied: Record<string, unknown> = {};
-    if (typeof input.model === "string" && input.model.trim()) {
-        const value = normalizeModelOptionValue(input.model, configStore.config.channels) || input.model;
-        configStore.updateConfig("videoModel", value);
-        applied.model = value;
+    if (input.offerId != null && Number.isFinite(Number(input.offerId))) {
+        const offerId = Number(input.offerId);
+        configStore.updateConfig("videoOfferId", offerId);
+        applied.offerId = offerId;
     }
     if (typeof input.size === "string" && input.size.trim()) {
         configStore.updateConfig("size", input.size);

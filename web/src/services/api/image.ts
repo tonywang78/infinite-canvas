@@ -1,6 +1,5 @@
 import i18n from "@/i18n";
-import axios from "axios";
-import { buildApiUrl, type AiConfig, type ModelChannel } from "@/stores/use-config-store";
+import type { AiConfig } from "@/stores/use-config-store";
 import { buildImageReferencePromptText } from "@/lib/image-reference-prompt";
 import { imageToDataUrl } from "@/services/image-storage";
 import { imageSizePresets } from "@/lib/media-size";
@@ -261,57 +260,4 @@ function extractTextContent(payload: unknown): string {
     if (typeof record.content === "string") return record.content;
     if (typeof record.text === "string") return record.text;
     return "";
-}
-
-// ---------------------------------------------------------------------------
-// Model listing — still used by ModelPicker (Task 4 will remove this together
-// with the picker rewrite). These are config-time calls, not generation flows.
-// ---------------------------------------------------------------------------
-
-type GeminiListModelPayload = {
-    models?: Array<{ name?: string }>;
-    error?: { message?: string };
-};
-
-function geminiListModelUrl(config: Pick<AiConfig, "baseUrl">) {
-    const normalizedBaseUrl = config.baseUrl.trim().replace(/\/+$/, "");
-    const lowerBaseUrl = normalizedBaseUrl.toLowerCase();
-    const base = lowerBaseUrl.endsWith("/v1") || lowerBaseUrl.endsWith("/v1beta") ? normalizedBaseUrl : `${normalizedBaseUrl}/v1beta`;
-    return `${base}/models`;
-}
-
-function readListModelError(error: unknown, fallback: string) {
-    if (axios.isAxiosError(error)) {
-        const data = error.response?.data as { error?: { message?: string }; message?: string } | undefined;
-        return data?.error?.message || data?.message || error.message || fallback;
-    }
-    return error instanceof Error ? error.message : fallback;
-}
-
-export async function fetchImageModels(config: Pick<AiConfig, "baseUrl" | "apiKey" | "apiFormat">) {
-    try {
-        if (config.apiFormat === "gemini") {
-            const response = await axios.get<GeminiListModelPayload>(geminiListModelUrl(config), {
-                headers: { "x-goog-api-key": config.apiKey },
-            });
-            if (response.data.error?.message) throw new Error(response.data.error.message);
-            return (response.data.models || [])
-                .map((model) => model.name?.replace(/^models\//, "") || "")
-                .filter((id): id is string => Boolean(id))
-                .sort((a, b) => a.localeCompare(b));
-        }
-        const response = await axios.get<{ data?: Array<{ id?: string }>; error?: { message?: string } }>(buildApiUrl(config.baseUrl, "/models"), {
-            headers: { Authorization: `Bearer ${config.apiKey}` },
-        });
-        return (response.data.data || [])
-            .map((model) => model.id || "")
-            .filter((id): id is string => Boolean(id))
-            .sort((a, b) => a.localeCompare(b));
-    } catch (error) {
-        throw new Error(readListModelError(error, apiText("modelReadFailed")));
-    }
-}
-
-export async function fetchChannelModels(channel: ModelChannel) {
-    return fetchImageModels({ baseUrl: channel.baseUrl, apiKey: channel.apiKey, apiFormat: channel.apiFormat });
 }

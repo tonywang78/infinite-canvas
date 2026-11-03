@@ -54,6 +54,8 @@ export type CanvasNodeMetadata = {
     generationMode?: CanvasGenerationMode;
     generationType?: CanvasImageGenerationType;
     model?: string;
+    /** 平台 offer id；新节点存 offerId，旧 model 字符串不再使用。 */
+    offerId?: number;
     reasoningEffort?: "auto" | "low" | "medium" | "high" | "xhigh";
     size?: string;
     quality?: string;
