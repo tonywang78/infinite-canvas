@@ -85,6 +85,12 @@ export const platformApi = {
             body: JSON.stringify({ offerId, params }),
         }),
     generateImage: (body: Record<string, unknown>) => request<any>("/app/generation/generate/image", { method: "POST", body: JSON.stringify(body) }),
+    generateImageEdit: (body: Record<string, unknown>) => request<any>("/app/generation/generate/image-edit", { method: "POST", body: JSON.stringify(body) }),
+    uploadTemp: (file: Blob, filename: string) => {
+        const form = new FormData();
+        form.append("files", file, filename);
+        return request<{ path: string; name: string; size: number; expiresInHours: number }>("/app/generation/upload/temp", { method: "POST", body: form });
+    },
     generateText: (body: Record<string, unknown>) => request<any>("/app/generation/generate/text", { method: "POST", body: JSON.stringify(body) }),
     generateVideo: (body: Record<string, unknown>) => request<any>("/app/generation/generate/video", { method: "POST", body: JSON.stringify(body) }),
     generateAudio: (body: Record<string, unknown>) => request<any>("/app/generation/generate/audio", { method: "POST", body: JSON.stringify(body) }),
