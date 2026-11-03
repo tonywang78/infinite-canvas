@@ -128,6 +128,7 @@ export class GenerationVendorService {
 
   /**
    * 当轮询完成但仍未给出可下载 URL 时，调用 /videos/{id}/content 拉取二进制。
+   * 尽力校验响应为视频：若上游明确给出非视频 content-type（text/、application/json、image/ 等）则拒绝。
    */
   async downloadVideoContent(
     channel: { baseUrl: string; apiKey: string },
@@ -143,6 +144,19 @@ export class GenerationVendorService {
     if (res.status >= 400) {
       const message = Buffer.from(res.data).toString('utf8');
       throw new CoolCommException(message || `上游错误 HTTP ${res.status}`);
+    }
+    const contentType = String(res.headers?.['content-type'] || '').toLowerCase();
+    if (
+      contentType &&
+      !contentType.startsWith('video/') &&
+      !contentType.includes('octet-stream') &&
+      !contentType.includes('binary') &&
+      !contentType.includes('stream')
+    ) {
+      const preview = Buffer.from(res.data).toString('utf8').slice(0, 200);
+      throw new CoolCommException(
+        `上游 /content 返回非视频内容 (${contentType || 'unknown'}): ${preview}`
+      );
     }
     return Buffer.from(res.data);
   }

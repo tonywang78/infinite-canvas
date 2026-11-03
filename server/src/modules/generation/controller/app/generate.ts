@@ -12,6 +12,7 @@ import { GenerationTaskEntity } from '../../entity/task';
 import { Equal, Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { v4 as uuid } from 'uuid';
 import { pUploadPath } from '../../../../comm/path';
 
 @CoolUrlTag()
@@ -224,13 +225,19 @@ export class AppGenerationController extends BaseController {
     videoUrl: string;
     url?: string;
   }> {
-    // 上游创建即返回最终 URL（同步视频接口）时直接放行。
+    // 上游创建即返回最终可下载媒体 URL（同步视频接口）时直接放行。
+    // 注意：只有当 URL 看起来像媒体文件时才接受，避免把 poll/status URL 当成最终视频。
     const createdPayload = this.unwrapVideoEnvelope(created);
     const immediateUrl = this.generationVendorService.extractVideoUrl(
       createdPayload
     );
     const immediateStatus = String(createdPayload?.status || '').toLowerCase();
-    if (immediateUrl && immediateStatus !== 'failed') {
+    if (
+      immediateUrl &&
+      looksLikeMediaUrl(immediateUrl) &&
+      immediateStatus !== 'failed' &&
+      immediateStatus !== 'cancelled'
+    ) {
       return { id: vendorId, status: 'completed', videoUrl: immediateUrl };
     }
     if (!vendorId) {
@@ -247,7 +254,9 @@ export class AppGenerationController extends BaseController {
       const payload = this.unwrapVideoEnvelope(polled);
       const status = String(payload?.status || '').toLowerCase();
       const url = this.generationVendorService.extractVideoUrl(payload);
-      if (url) {
+      // 只有当状态完成且 URL 看起来像媒体文件时才接受。
+      // 上游在 processing 中返回的 status/poll URL 绝不能写入 videoUrl。
+      if (url && looksLikeMediaUrl(url) && status === 'completed') {
         return { id: vendorId, status: 'completed', videoUrl: url };
       }
       if (status === 'failed' || status === 'cancelled') {
@@ -258,11 +267,14 @@ export class AppGenerationController extends BaseController {
         throw new CoolCommException(message);
       }
       if (status === 'completed') {
-        // 状态已完成但无 URL，回退拉取 /content 二进制落盘后返回本地 URL。
+        // 状态已完成但未给出可下载 URL，回退拉取 /content 二进制落盘后返回本地 URL。
         const localUrl = await this.persistVideoContent(channel, vendorId);
         return { id: vendorId, status: 'completed', videoUrl: localUrl };
       }
-      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      // 仍在处理中（含上游返回 poll/status URL 的情况），继续轮询；最后一次不再 sleep。
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
     }
     throw new CoolCommException('视频生成超时，请稍后重试');
   }
@@ -277,35 +289,39 @@ export class AppGenerationController extends BaseController {
     );
     const dir = path.join(pUploadPath(), 'temp');
     fs.mkdirSync(dir, { recursive: true });
-    const name = `${vendorId}.mp4`;
+    // 不要直接用 vendorId 当文件名（可能含路径分隔符或 ..）；用 uuid 防穿越，与 upload.ts 一致。
+    const name = `${uuid()}.mp4`;
     const target = path.join(dir, name);
     fs.writeFileSync(target, buffer);
-    return `/upload/temp/${name}`;
+    // 返回浏览器可直接 fetch 的绝对 URL：Vite 前端与平台 API 不同源，
+    // 裸 `/upload/temp/...` 会被解析到前端 origin 而无法访问。
+    const origin = String(this.ctx?.origin || '').replace(/\/+$/, '');
+    return `${origin}/upload/temp/${name}`;
   }
 
   /**
    * 兼容上游裸返回与 `{ code, data }` 信封两种格式，取出真正的视频任务对象。
+   * 与前端 unwrapEnvelope 行为一致：仅当信封显式带 `code` 时才解嵌 `data`，
+   * 否则把整个对象当作任务对象，避免丢失顶层的 `status` 字段。
    */
   private unwrapVideoEnvelope(
     payload: unknown
   ): Record<string, unknown> | null {
     if (!payload || typeof payload !== 'object') return null;
     const record = payload as Record<string, unknown>;
-    if (
-      'code' in record &&
-      record.code !== undefined &&
-      record.code !== 0 &&
-      record.code !== '0'
-    ) {
-      throw new CoolCommException(
-        (record as { msg?: string; message?: string }).msg ||
-          (record as { message?: string }).message ||
-          `上游错误 code ${record.code}`
-      );
-    }
-    const inner = record.data;
-    if (inner && typeof inner === 'object') {
-      return inner as Record<string, unknown>;
+    if ('code' in record && record.code !== undefined) {
+      if (record.code !== 0 && record.code !== '0') {
+        throw new CoolCommException(
+          (record as { msg?: string; message?: string }).msg ||
+            (record as { message?: string }).message ||
+            `上游错误 code ${record.code}`
+        );
+      }
+      const inner = record.data;
+      if (inner && typeof inner === 'object') {
+        return inner as Record<string, unknown>;
+      }
+      return record;
     }
     return record;
   }
@@ -372,4 +388,15 @@ const MIME_BY_EXT: Record<string, string> = {
 function mimeFromExt(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
   return MIME_BY_EXT[ext] || 'application/octet-stream';
+}
+
+const VIDEO_EXT_REGEX = /\.(mp4|webm|mov|m4v|mkv|avi|ts|ogv)(\?|#|$)/i;
+
+/**
+ * 判断 URL 是否看起来像可播放的视频媒体，而非 poll/status 之类的接口 URL。
+ * 与前端 videoResultUrl 中 `\.mp4(\?|#|$)` 的兜底判断保持一致，并扩展常见视频扩展名。
+ */
+function looksLikeMediaUrl(url: string): boolean {
+  if (typeof url !== 'string' || !url) return false;
+  return VIDEO_EXT_REGEX.test(url);
 }
